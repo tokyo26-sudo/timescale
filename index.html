@@ -27,6 +27,7 @@ header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--ambe
 /* サイドパネル */
 .side-panel{width:262px;min-width:232px;background:var(--panel);border-right:1px solid var(--rail);
   display:flex;flex-direction:column;overflow-y:auto;padding:10px 11px;gap:10px;flex-shrink:0;}
+.side-panel.collapsed{display:none;}
 .sec-label{font-size:.54rem;font-family:var(--font-mono);color:var(--muted);letter-spacing:.16em;
   text-transform:uppercase;margin-bottom:4px;}
 
@@ -78,10 +79,14 @@ select:focus,input:focus{border-color:var(--amber);}
 .topic-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .topic-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.7rem;padding:0 2px;flex-shrink:0;}
 .topic-del:hover{color:var(--red);}
-.topic-add-row{display:flex;gap:4px;margin-top:4px;}
-.topic-age-in{width:48px!important;flex-shrink:0;}
+.topic-add-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+.topic-add-row input,.topic-add-row select{font-size:.8rem;padding:7px 8px;}  /* 大きめ・たかめで打ちやすく */
+.topic-yr-row{display:flex;gap:5px;flex:1 1 100%;}            /* 西れき年＋月で1行 */
+.topic-yr-row .topic-age-in{flex:1 1 auto;width:auto!important;} /* 年が広く */
+.topic-month-in{flex:0 0 auto;}                              /* 月は固有幅 */
+.topic-add-row #topicText{flex:1 1 0;min-width:0;}           /* できごとは次の行で残り幅いっぱい */
 .topic-add-btn{background:var(--rail);border:1px solid var(--muted);color:var(--white);border-radius:4px;
-  padding:4px 7px;cursor:pointer;font-size:.66rem;white-space:nowrap;transition:all .12s;flex-shrink:0;}
+  padding:7px 11px;cursor:pointer;font-size:.74rem;white-space:nowrap;transition:all .12s;flex-shrink:0;}
 .topic-add-btn:hover{background:var(--amber);color:var(--bg);border-color:var(--amber);}
 .topic-bubble{background:#0D1E30EE;border:1px solid var(--amber);border-radius:6px;padding:3px 7px;
   font-size:.68rem;color:#EEF2F7;max-width:160px;white-space:normal;line-height:1.3;
@@ -138,7 +143,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 .age-marker-wrap:active{cursor:grabbing;}
 .age-marker-circle{border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;
   font-family:'Share Tech Mono',monospace;font-weight:bold;color:#07111F;animation:pulse 1.4s infinite;
-  user-select:none;}
+  user-select:none;white-space:nowrap;overflow:visible;}
 .age-marker-label{font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:bold;
   color:#fff;text-shadow:0 0 4px #000,0 0 4px #000;margin-top:1px;white-space:nowrap;user-select:none;}
 @keyframes pulse{
@@ -164,16 +169,17 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 </head>
 <body>
 <header>
+  <button onclick="toggleSidebar()" id="btnSidebar" title="メニューを隠す/表示" style="font-size:.8rem;padding:2px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;cursor:pointer;">◀</button>
   <h1>◉ タイムスケール路線図</h1>
   <span style="font-size:.64rem;color:var(--muted)">TIMESCALE SHINKANSEN</span>
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.36</span>
+  <span class="ver">v2.50</span>
 </header>
 <div class="main-wrap">
   <!-- サイドパネル -->
-  <div class="side-panel">
+  <div class="side-panel" id="sidePanel">
 
     <div>
       <div class="sec-label">① 新幹線を選ぶ</div>
@@ -204,13 +210,13 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       <div style="display:flex;flex-direction:column;gap:5px">
         <div class="year-field"><label>🟢 始まり</label>
           <div style="display:flex;gap:4px">
-            <input type="text" id="birthYear" value="1900" placeholder="例: -500" style="flex:2"/>
+            <input type="text" id="birthYear" value="1900" placeholder="例: -500, 138億" style="flex:2" onblur="normalizeYearField(this)"/>
             <select id="birthMonth" style="flex:1"><option value="0">──月</option></select>
           </div>
         </div>
         <div class="year-field"><label>🔴 終わり</label>
           <div style="display:flex;gap:4px">
-            <input type="text" id="deathYear" value="1980" placeholder="例: -500" style="flex:2"/>
+            <input type="text" id="deathYear" value="1980" placeholder="例: -500, 138億" style="flex:2" onblur="normalizeYearField(this)"/>
             <select id="deathMonth" style="flex:1"><option value="0">──月</option></select>
           </div>
         </div>
@@ -228,6 +234,10 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
         <button class="wr-btn" onclick="setDateMode('wareki',this)">和れき</button>
         <button class="wr-btn" onclick="setDateMode('both',this)">両方</button>
       </div>
+      <div class="wareki-row" id="bigFmtBtns" style="display:none;margin-top:5px">
+        <button class="wr-btn active" id="bigFmtPlain" onclick="setBigFmt(false,this)" title="そのままの数字（カンマ区切り）">🔢 そのまま</button>
+        <button class="wr-btn" id="bigFmtJp" onclick="setBigFmt(true,this)" title="億・万で表記">㊙ 億・万表記</button>
+      </div>
     </div>
 
     <div id="topicSection" style="display:none">
@@ -239,9 +249,12 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       </div>
       <div class="topic-list" id="topicList"></div>
       <div class="topic-add-row">
-        <input type="number" class="topic-age-in" id="topicYear" placeholder="西れき年"/>
-        <input type="text" id="topicText" placeholder="できごとを入力…" style="flex:1"/>
-        <button class="topic-add-btn" id="topicAddBtn" onclick="addTopic()">＋</button>
+        <div class="topic-yr-row">
+          <input type="text" inputmode="text" class="topic-age-in" id="topicYear" placeholder="西れき年（例: -300000, 138億）" onblur="normalizeYearField(this)"/>
+          <select id="topicMonth" class="topic-month-in"><option value="0">──月</option></select>
+        </div>
+        <input type="text" id="topicText" placeholder="できごとを入力…"/>
+        <button class="topic-add-btn" id="topicAddBtn" onclick="addTopic()">＋ 追加</button>
       </div>
       <div style="margin-top:5px">
         <label class="btn-sm" style="cursor:pointer;display:block;text-align:center;font-size:.62rem;padding:5px">
@@ -313,9 +326,10 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       <div class="ov-controls">
         <button class="ov-btn" id="btnPlay" onclick="toggleAnim()">▶ 再生</button>
         <button class="ov-btn" onclick="resetAnim()">⏮</button>
+        <button class="ov-btn" id="btnFollow" onclick="toggleFollow(this)" title="スライダを動かすと地図が丸を追いかける">🎯 追尾</button>
         <div class="speed-row">
           <span>おそ</span>
-          <input type="range" id="speedSlider" min="1" max="10" value="4"/>
+          <input type="range" id="speedSlider" min="1" max="10" value="8" title="全体の再生時間（おそ=180秒 〜 はや=10秒）"/>
           <span>はや</span>
         </div>
       </div>
@@ -641,15 +655,104 @@ function toWareki(y){
   for(const w of WAREKI){ if(y>=w.start){ const n=y-w.start+1; return w.name+(n===1?'元':n)+'年'; } }
   return y+'年';
 }
+// ===== 大きい数：入力パース＆表示 =====
+let bigYearJp=false; // 地球スケールの表示: false=そのまま(カンマ), true=億・万表記
+
+// 日本語の数（億・万・千・小数・「年前」など）→ 数値 に変換
+// 例: "-138億"→-13800000000, "13.8億"→1380000000, "138億3400万"→13834000000
+function parseJpNumber(raw){
+  if(raw==null) return NaN;
+  let s=String(raw).trim();
+  if(s==='') return NaN;
+  // 全角→半角、記号の正規化
+  s=s.replace(/[０-９]/g,d=>String.fromCharCode(d.charCodeAt(0)-0xFEE0))
+     .replace(/[．]/g,'.').replace(/[，、,\s]/g,'').replace(/[ー－―‐−]/g,'-');
+  // 「年前/前」→マイナス、「年後/後/年」は除去
+  let sign=1;
+  if(/(年前|前)$/.test(s)){ sign=-1; s=s.replace(/(年前|前)$/,''); }
+  else { s=s.replace(/(年後|後|年)$/,''); }
+  if(s[0]==='-'){ sign=-sign; s=s.slice(1); }
+  else if(s[0]==='+'){ s=s.slice(1); }
+  if(s==='') return NaN;
+  if(/^[0-9]+(\.[0-9]+)?$/.test(s)) return sign*parseFloat(s); // 純粋な数値
+  // 大単位（降順）。※京(10^16)から上はJSの精度限界を超えるので参考程度
+  const BIG=[['無量大数',1e68],['不可思議',1e64],['那由他',1e60],['阿僧祇',1e56],['恒河沙',1e52],
+    ['極',1e48],['載',1e44],['正',1e40],['澗',1e36],['溝',1e32],['穣',1e28],['秭',1e24],['𥝱',1e24],
+    ['垓',1e20],['京',1e16],['兆',1e12],['億',1e8],['万',1e4]];
+  const SMALL=[['千',1e3],['百',1e2],['十',1e1]];
+  function parseSmall(str){
+    str=str.trim();
+    if(str==='') return 1;
+    if(/^[0-9]+(\.[0-9]+)?$/.test(str)) return parseFloat(str);
+    let t=0, r=str;
+    for(const [nm,v] of SMALL){
+      const i=r.indexOf(nm);
+      if(i>=0){ const h=r.slice(0,i); r=r.slice(i+nm.length); t+=(h===''?1:parseFloat(h))*v; }
+    }
+    if(r!==''){ const n=parseFloat(r); if(!isNaN(n)) t+=n; }
+    return t;
+  }
+  let total=0, rest=s, matched=false;
+  for(const [nm,v] of BIG){
+    const i=rest.indexOf(nm);
+    if(i>=0){ const h=rest.slice(0,i); rest=rest.slice(i+nm.length); total+=parseSmall(h)*v; matched=true; }
+  }
+  if(rest!=='') total+=parseSmall(rest);
+  if(!matched && total===0) return NaN;
+  return sign*total;
+}
+
+// 数値 → 億・万 表記（例: 13834000000 → "138億3400万", 1380000000 → "13億8000万"）
+function toJpUnits(n){
+  n=Math.round(n);
+  if(n===0) return '0';
+  const neg=n<0; n=Math.abs(n);
+  const BIG=[['無量大数',1e68],['不可思議',1e64],['那由他',1e60],['阿僧祇',1e56],['恒河沙',1e52],
+    ['極',1e48],['載',1e44],['正',1e40],['澗',1e36],['溝',1e32],['穣',1e28],['秭',1e24],
+    ['垓',1e20],['京',1e16],['兆',1e12],['億',1e8],['万',1e4]];
+  let parts='', rest=n;
+  for(const [nm,v] of BIG){
+    if(rest>=v){ const q=Math.floor(rest/v); rest-=q*v; parts+=q+nm; }
+  }
+  if(rest>0) parts+=String(rest);
+  return (neg?'-':'')+(parts||'0');
+}
+
+// 地球スケールの数値表示（トグルに応じて切替）
+function fmtBigNum(n){ n=Math.round(n); return bigYearJp ? toJpUnits(n) : n.toLocaleString(); }
+
+// 年フィールドを正規化（入力された日本語表記を数値に直す）
+function normalizeYearField(el){ const v=parseJpNumber(el.value); if(!isNaN(v)) el.value=String(Math.round(v)); }
+
 function fmtYear(y){
+  if(scaleMode==='earth'){           // 地球スケールは億表記トグルに従う
+    if(y<0){
+      const a=Math.abs(y);
+      if(a<=9999) return '紀元前'+a+'年';   // -1〜-9999 は「紀元前◯年」
+      return fmtBigNum(a)+'年前';            // -10000 より前は「◯年前」（億・万トグル対応）
+    }
+    return fmtBigNum(y)+'年';
+  }
   if(dateMode==='seireki') return y+'年';
   if(dateMode==='wareki')  return toWareki(y);
   return y+'年（'+toWareki(y)+'）';
 }
 
+// トピックの「年＋月」を数値化（月なし=0なら年そのまま）。並び順・位置に使う
+function topicYearVal(t){ return t.year + ((t.month>0) ? (t.month-1)/12 : 0); }
+// トピックの表示ラベル（月があれば付ける。ただし大昔の「◯年前」には付けない）
+function fmtTopicLabel(t){
+  let s=fmtYear(Math.round(t.year));
+  if(t.month>0 && t.year>-10000) s += t.month+'月';
+  return s;
+}
+
 // ===== 状態 =====
 let selectedRoute=null, stations=[], totalDist=0;
 let routeLine=null, stMarkers=[], currentMarker=null, topicMarkers=[];
+// 吹き出し最前面管理（クリックで前面に出す。再描画後も順番を覚えておく）
+let topicTopZ=1000; const topicZOrder={};
+let followMode=false; // スライダ操作・再生で地図が丸を自動追尾するか
 let animTimer=null, isPlaying=false;
 let dateMode='seireki', topics=[], reversed=false, scaleMode='human';
 let isDragging=false;
@@ -843,7 +946,7 @@ function swapTerminals(){
 
 // ===== 月セレクト初期化 =====
 function buildMonthSelects(){
-  ['birthMonth','deathMonth'].forEach(id=>{
+  ['birthMonth','deathMonth','topicMonth'].forEach(id=>{
     const sel=document.getElementById(id);
     sel.innerHTML='<option value="0">──月</option>';
     for(let m=1;m<=12;m++) sel.appendChild(new Option(m+'月',m));
@@ -855,17 +958,53 @@ function setScale(mode, btn){
   scaleMode = mode;
   document.querySelectorAll('#scaleHuman,#scaleEarth').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  // 地球スケールは和暦非対応
+  // 地球スケールは和暦非対応。代わりに「表示形式」トグルを出す
   const warekiBtns = document.getElementById('warekiBtns');
+  const bigFmtBtns = document.getElementById('bigFmtBtns');
   if(mode==='earth'){
     warekiBtns.style.display='none';
+    if(bigFmtBtns) bigFmtBtns.style.display='';
     dateMode='seireki';
   } else {
     warekiBtns.style.display='';
+    if(bigFmtBtns) bigFmtBtns.style.display='none';
   }
   // 月セレクトの表示切りかえ
   document.getElementById('birthMonth').style.display = mode==='human' ? '' : 'none';
   document.getElementById('deathMonth').style.display = mode==='human' ? '' : 'none';
+}
+
+// 地球スケールの数値表示を「そのまま⇔億・万表記」で切替
+function setBigFmt(jp, btn){
+  bigYearJp = jp;
+  document.querySelectorAll('#bigFmtPlain,#bigFmtJp').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // 表示を更新
+  if(stations.length>0){
+    onSlider(parseInt(document.getElementById('ageSlider').value));
+    buildStationList(getStartVal(), getEndVal());
+    if(bubbleVisible) redrawTopicMarkers();
+  }
+}
+
+// 自動追尾モードのON/OFF
+function toggleFollow(btn){
+  followMode = !followMode;
+  btn.classList.toggle('active', followMode);
+  btn.textContent = followMode ? '🎯 追尾中' : '🎯 追尾';
+  // ONにした瞬間、今の丸の位置にすぐ寄せる
+  if(followMode && stations.length>0){
+    onSlider(parseInt(document.getElementById('ageSlider').value));
+  }
+}
+
+// 左メニュー（サイドパネル）の開閉。地図を広く使える
+function toggleSidebar(){
+  const sp=document.getElementById('sidePanel');
+  const collapsed=sp.classList.toggle('collapsed');
+  document.getElementById('btnSidebar').textContent = collapsed ? '▶' : '◀';
+  // 地図のサイズを再計算（折りたたみ後の幅に合わせる）
+  setTimeout(()=>{ try{ map.invalidateSize(); }catch(e){} }, 60);
 }
 
 // ===== 始まり・終わりを「月」で取得 =====
@@ -873,13 +1012,13 @@ function setScale(mode, btn){
 // 地球スケール: 年のまま（整数）
 // getStartVal/getEndVal → 常に「西れき年（実数）」を返スル
 function getStartVal(){
-  const raw = document.getElementById('birthYear').value.trim(); const y = raw===''||isNaN(Number(raw)) ? 0 : Number(raw);
+  const v = parseJpNumber(document.getElementById('birthYear').value); const y = isNaN(v) ? 0 : v;
   if(scaleMode==='earth') return y;
   const m = parseInt(document.getElementById('birthMonth').value)||1;
   return y + (m-1)/12;
 }
 function getEndVal(){
-  const raw = document.getElementById('deathYear').value.trim(); const y = raw===''||isNaN(Number(raw)) ? 0 : Number(raw);
+  const v = parseJpNumber(document.getElementById('deathYear').value); const y = isNaN(v) ? 0 : v;
   if(scaleMode==='earth') return y;
   const m = parseInt(document.getElementById('deathMonth').value)||1;
   return y + (m-1)/12;
@@ -901,9 +1040,7 @@ function spanToYears(span){
 // valToLabel: 西れき年（実数）を表示文字列に変換
 function valToLabel(yearReal){
   if(scaleMode==='earth'){
-    const y=Math.round(yearReal);
-    if(y<0) return Math.abs(y).toLocaleString()+'年前';
-    return fmtYear(y);
+    return fmtYear(Math.round(yearReal));   // fmtYearが「年前/年」＋億表記を処理
   }
   // 人スケール：西れき年（実数）→ 年・月表示
   const yr = Math.floor(yearReal);
@@ -914,7 +1051,7 @@ function valToLabel(yearReal){
 // 値→年れいラベル（スライダ上の表示）
 function valToAgeLabel(steps){
   // stepsは「スライダの値」= 経過月数（人）or 経過年数（地球）
-  if(scaleMode==='earth') return steps.toLocaleString();
+  if(scaleMode==='earth') return fmtBigNum(steps);
   const y=Math.floor(steps/12);
   return `${y}`;
 }
@@ -940,14 +1077,16 @@ function toggleBubbles(){
   if(stations.length>0)redrawTopicMarkers();
 }
 function addTopic(){
-  const yrVal=document.getElementById('topicYear').value;
+  const yrVal=document.getElementById('topicYear').value.trim();
   const text=document.getElementById('topicText').value.trim();
   if(yrVal===''||!text){setStatus('年と内よう両方入れてネ！',true);return;}
-  const yr=parseInt(yrVal);
-  if(isNaN(yr)){setStatus('年は数字で入れてネ！',true);return;}
-  topics.push({year:yr,text});
-  topics.sort((a,b)=>a.year-b.year);
+  const yr=parseJpNumber(yrVal);
+  if(isNaN(yr)){setStatus('年がわからないヨ！数字か「138億」みたいに入れてネ',true);return;}
+  const mo=parseInt(document.getElementById('topicMonth').value)||0; // 0=月なし
+  topics.push({year:Math.round(yr),month:mo,text});
+  topics.sort((a,b)=>topicYearVal(a)-topicYearVal(b));
   document.getElementById('topicYear').value='';
+  document.getElementById('topicMonth').value='0';
   document.getElementById('topicText').value='';
   renderTopicList();
   if(stations.length>0)redrawTopicMarkers();
@@ -967,10 +1106,10 @@ function loadTopicCSV(event){
       const yr=parseInt(parts[0]);
       const text=parts.slice(1).join(',').trim().replace(/^["']|["']$/g,'');
       if(isNaN(yr)||!text)return;
-      topics.push({year:yr,text});
+      topics.push({year:yr,month:0,text});
       count++;
     });
-    topics.sort((a,b)=>a.year-b.year);
+    topics.sort((a,b)=>topicYearVal(a)-topicYearVal(b));
     renderTopicList();
     if(stations.length>0)redrawTopicMarkers();
     setStatus(`${count}件のトピックをよみこんだヨ！`,false);
@@ -991,7 +1130,7 @@ function renderTopicList(){
   topics.forEach((t,i)=>{
     const el=document.createElement('div');
     el.className='topic-item';
-    el.innerHTML=`<span class="topic-age">${t.year}年</span>
+    el.innerHTML=`<span class="topic-age">${t.year}年${t.month>0?t.month+'月':''}</span>
       <span class="topic-text">${t.text}</span>
       <button class="topic-del" onclick="deleteTopic(${i})">✕</button>`;
     list.appendChild(el);
@@ -1003,12 +1142,33 @@ function redrawTopicMarkers(){
   const birthYear=getStartVal(), deathYear=getEndVal();
   const col=selectedRoute.color;
 
-  topics.forEach(t=>{
-    if(t.year<birthYear||t.year>deathYear)return;
-    const ratio=(t.year-birthYear)/(deathYear-birthYear);
+  // ① 表示するトピックを集めて、画面上のピクセル位置を計算
+  const visible=[];
+  topics.forEach((t,ti)=>{
+    const ey=topicYearVal(t);   // 年＋月（月なしなら年そのまま）
+    if(ey<birthYear||ey>deathYear)return;
+    const ratio=(ey-birthYear)/(deathYear-birthYear);
     const pos=getPosAtRatio(ratio);
     if(!pos)return;
+    visible.push({t,ti,pos,pt:map.latLngToContainerPoint([pos.lat,pos.lon]),stack:0});
+  });
 
+  // ② 近い吹き出し同士をタテに積む（重なりよけ）。年月の古い順で下から積む
+  visible.sort((a,b)=>topicYearVal(a.t)-topicYearVal(b.t));
+  const CLUSTER_PX=30;   // これより近いと「重なってる」とみなす（ズームすると離れて解消）
+  for(let i=0;i<visible.length;i++){
+    let lv=0;
+    for(let j=0;j<i;j++){
+      const dx=visible[i].pt.x-visible[j].pt.x, dy=visible[i].pt.y-visible[j].pt.y;
+      if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_PX) lv=Math.max(lv, visible[j].stack+1);
+    }
+    visible[i].stack=lv;
+  }
+
+  // ③ 描画
+  const STACK_STEP=50;   // 1段ぶん上にずらす高さ(px)
+  visible.forEach(v=>{
+    const t=v.t, ti=v.ti, pos=v.pos;
     // 点マーカー
     const dotIcon=L.divIcon({className:'',
       html:'<div style="background:'+col+';border:2px solid #fff;border-radius:50%;width:10px;height:10px;box-shadow:0 0 5px rgba(0,0,0,.7)"></div>',
@@ -1016,14 +1176,28 @@ function redrawTopicMarkers(){
     const m=L.marker([pos.lat,pos.lon],{icon:dotIcon,interactive:false}).addTo(map);
 
     if(bubbleVisible){
-      // Leaflet標準のtooltipで常時表示（地図追従・確実）
+      // 積み重なってる分だけ上にずらして表示（重なりよけ）
+      const yOff=-8 - v.stack*STACK_STEP;
       m.bindTooltip(
         '<div style="font-size:.68rem;line-height:1.4;min-width:130px;max-width:160px;white-space:normal;">'
-        +'<span style="color:'+col+';display:block;font-size:.62rem;margin-bottom:2px">'+fmtYear(Math.round(t.year))+'</span>'
+        +'<span style="color:'+col+';display:block;font-size:.62rem;margin-bottom:2px">'+fmtTopicLabel(t)+'</span>'
         +t.text+'</div>',
-        {permanent:true, direction:'top', className:'topic-tooltip', offset:[0,-8]}
+        {permanent:true, direction:'top', className:'topic-tooltip', offset:[0,yOff], interactive:true}
       );
       m.openTooltip();
+      // 吹き出しのDOMを取得して「クリックで最前面」を仕込む
+      const tipEl=m.getTooltip()&&m.getTooltip().getElement();
+      if(tipEl){
+        tipEl.style.cursor='pointer';
+        tipEl.style.pointerEvents='auto';   // ← クリックを確実に受け取る
+        // 既定は下の段ほど手前（端が重なっても各段の年が見える）。クリック済みなら最前面を維持
+        tipEl.style.zIndex = (topicZOrder[ti]!=null) ? topicZOrder[ti] : (700 - v.stack);
+        tipEl.addEventListener('click',function(ev){
+          ev.stopPropagation();
+          topicZOrder[ti]=(++topicTopZ); // 覚えておく（再描画後も維持）
+          tipEl.style.zIndex=topicZOrder[ti];
+        });
+      }
     }
     topicMarkers.push({marker:m, year:t.year});
   });
@@ -1170,6 +1344,9 @@ function onSlider(months){
     iconSize:[size,size+18],iconAnchor:[size/2,size/2]});
   currentMarker=L.marker([pos.lat,pos.lon],{icon,zIndexOffset:1000,draggable:true}).addTo(map);
 
+  // 追尾モード：地図を丸の位置にすぐ寄せる（ズームは変えない）
+  if(followMode) map.panTo([pos.lat,pos.lon],{animate:false});
+
   // ドラッグ中も路線上にスナップさせルヨ
   currentMarker.on('drag',function(e){
     isDragging=true;
@@ -1237,7 +1414,7 @@ function buildStationList(birthYear,deathYear){
     const birthYearReal2=scaleMode==='human'?birthYear/12:birthYear;
     const ageVal=scaleMode==='human'
       ? (()=>{const d=Math.round((s.year-birthYearReal2)*12);const y=Math.floor(d/12);return y+'歳';})()
-      : (yr-Math.round(birthYearReal2)).toLocaleString()+'年';
+      : fmtBigNum(yr-Math.round(birthYearReal2))+'年';
     const el=document.createElement('div');
     el.className='sli';el.dataset.name=s.name;
     el.innerHTML=`<div class="sli-dot"></div><span style="flex:1">${s.name}</span>
@@ -1258,15 +1435,25 @@ function startAnim(){
   document.getElementById('btnPlay').textContent='⏸';
   document.getElementById('btnPlay').classList.add('active');
   const sl=document.getElementById('ageSlider');
-  const speed=()=>Math.max(1,11-parseInt(document.getElementById('speedSlider').value))*10;
+  const maxV=parseInt(sl.max);
+  // 速度スライダ(1〜10) → 全体の再生時間(180秒〜10秒)。stepSizeとintervalを毎回算出（途中変更も即反映）
+  function params(){
+    const val=parseInt(document.getElementById('speedSlider').value);
+    const D=10+(10-val)/9*170;          // 秒：val1→180秒(おそ), val10→10秒(はや)
+    const BASE=40;                       // ms（なめらか基準＝約25fps）
+    const wantTicks=D*1000/BASE;
+    if(maxV>=wantTicks) return {step:Math.max(1,Math.round(maxV/wantTicks)), interval:BASE};
+    return {step:1, interval:Math.max(BASE, Math.round(D*1000/maxV))}; // 短い人生はstep=1で間隔を伸ばす
+  }
   function step(){
     if(!isPlaying)return;
-    let v=parseInt(sl.value)+1;
-    if(v>parseInt(sl.max))v=0;
+    const p=params();
+    let v=parseInt(sl.value)+p.step;
+    if(v>=maxV){ onSlider(maxV); stopAnim(); return; } // 最後（現在）まで来たら止める
     onSlider(v);
-    animTimer=setTimeout(step,speed());
+    animTimer=setTimeout(step,p.interval);
   }
-  animTimer=setTimeout(step,speed());
+  animTimer=setTimeout(step,params().interval);
 }
 function stopAnim(){
   isPlaying=false;clearTimeout(animTimer);
@@ -1279,7 +1466,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.36',
+    version:'2.50',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1292,6 +1479,7 @@ function buildShareData(){
     deathMonthRaw:parseInt(document.getElementById('deathMonth').value)||1,
     scaleMode,
     dateMode,
+    bigYearJp,
     topics,
     currentMonth:parseInt(document.getElementById('ageSlider').value),
   };
@@ -1322,9 +1510,9 @@ function resetAll(){
   // 路線選択解除
   selectedRoute=null;
   document.querySelectorAll('.route-btn').forEach(b=>{b.classList.remove('sel');b.style.borderColor='';b.style.color='';});
-  // 始発・終着をデフォルトに
-  document.getElementById('startSt').innerHTML='';
-  document.getElementById('endSt').innerHTML='';
+  // 始発・終着をクリア
+  document.getElementById('startSel').innerHTML='';
+  document.getElementById('endSel').innerHTML='';
   // 年をデフォルトに
   document.getElementById('birthYear').value='1900';
   document.getElementById('deathYear').value='1980';
@@ -1333,11 +1521,26 @@ function resetAll(){
   // トピッククリア
   topics=[];
   renderTopicList();
-  // セクション非表示
-  ['terminalSection','yearSection','warekiSection','topicSection','drawSection'].forEach(id=>{
+  // 吹き出し最前面の記憶もリセット
+  topicTopZ=1000; for(const k in topicZOrder) delete topicZOrder[k];
+  // スケール・表記・追尾をデフォルトに戻す
+  scaleMode='human';
+  document.querySelectorAll('#scaleHuman,#scaleEarth').forEach(b=>b.classList.remove('active'));
+  const sh=document.getElementById('scaleHuman'); if(sh)sh.classList.add('active');
+  dateMode='seireki';
+  document.querySelectorAll('#warekiBtns .wr-btn').forEach((b,i)=>b.classList.toggle('active', i===0));
+  bigYearJp=false;
+  const bp=document.getElementById('bigFmtPlain'), bj=document.getElementById('bigFmtJp');
+  if(bp&&bj){ bp.classList.add('active'); bj.classList.remove('active'); }
+  followMode=false;
+  const bf=document.getElementById('btnFollow'); if(bf){ bf.classList.remove('active'); bf.textContent='🎯 追尾'; }
+  // セクション・駅一覧を非表示＆クリア（最初の状態に戻す）
+  ['terminalSection','yearSection','warekiSection','topicSection','drawSection','stationListSection','saveSection','hr2'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.style.display='none';
   });
+  const stList=document.getElementById('stationList');
+  if(stList) stList.innerHTML='';
   setStatus('リセットしたヨ！',false);
 }
 
@@ -1364,16 +1567,27 @@ function applyData(data,doneMsg){
     }
     if(data.reversed!==reversed)swapTerminals();
     topics=data.topics||[];
-    dateMode=data.dateMode||'seireki';
-    document.querySelectorAll('.wr-btn').forEach((b,i)=>{
-      const modes=['seireki','wareki','both'];
-      b.classList.toggle('active',modes[i]===dateMode);
+    // 元号ボタン（人スケール）復元：warekiBtns内だけを対象にする
+    dateMode = (scaleMode==='earth') ? 'seireki' : (data.dateMode||'seireki');
+    const dModes=['seireki','wareki','both'];
+    document.querySelectorAll('#warekiBtns .wr-btn').forEach((b,i)=>{
+      b.classList.toggle('active', dModes[i]===dateMode);
     });
+    // 表示形式トグル（地球スケール）復元
+    bigYearJp = !!data.bigYearJp;
+    const bp=document.getElementById('bigFmtPlain'), bj=document.getElementById('bigFmtJp');
+    if(bp&&bj){ bp.classList.toggle('active',!bigYearJp); bj.classList.toggle('active',bigYearJp); }
     renderTopicList();
-    drawLife();
+    drawLife();   // 初回描画（このとき地図がズームするので一瞬グニャっとなる）
+    // 地図のズームが落ち着いてから、もう一度きれいに描き直す＝「タイムスケールを表示」を自動で押すのと同じ
     setTimeout(()=>{
-      if(data.currentMonth!=null)onSlider(data.currentMonth);
-    },100);
+      drawLife();
+      if(data.currentMonth!=null){
+        const sl=document.getElementById('ageSlider');
+        sl.value=data.currentMonth;
+        onSlider(data.currentMonth);   // スライダ位置を復元（drawLifeが0に戻すので最後に）
+      }
+    },400);
     setStatus(doneMsg||'読みこんだヨ！',false);
   },50);
 }
