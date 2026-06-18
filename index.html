@@ -185,7 +185,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.61</span>
+  <span class="ver">v2.62</span>
 </header>
 <div class="main-wrap">
   <!-- サイドパネル -->
@@ -1436,7 +1436,7 @@ function buildStationList(birthYear,deathYear){
   const list=document.getElementById('stationList');list.innerHTML='';
   stations.forEach(s=>{
     const yr=Math.round(s.year);
-    const birthYearReal2=scaleMode==='human'?birthYear/12:birthYear;
+    const birthYearReal2=birthYear;   // getStartVal()は人スケールでも「年」を返す（÷12しない）
     const ageVal=scaleMode==='human'
       ? (()=>{const d=Math.round((s.year-birthYearReal2)*12);const y=Math.floor(d/12);return y+'歳';})()
       : fmtBigNum(yr-Math.round(birthYearReal2))+'年';
@@ -1491,7 +1491,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.61',
+    version:'2.62',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
