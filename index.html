@@ -83,7 +83,7 @@ select:focus,input:focus{border-color:var(--amber);}
 .topic-add-row input,.topic-add-row select{font-size:.8rem;padding:7px 8px;}  /* 大きめ・たかめで打ちやすく */
 .topic-yr-row{display:flex;gap:5px;flex:1 1 100%;}            /* 西れき年＋月で1行 */
 .topic-yr-row .topic-age-in{flex:1 1 auto;width:auto!important;} /* 年が広く */
-.topic-month-in{flex:0 0 auto;}                              /* 月は固有幅 */
+.topic-month-in{flex:0 0 auto;width:88px;}                   /* 月は固有幅（select{width:100%}継承を打消し）*/
 .topic-add-row #topicText{flex:1 1 0;min-width:0;}           /* できごとは次の行で残り幅いっぱい */
 .topic-add-btn{background:var(--rail);border:1px solid var(--muted);color:var(--white);border-radius:4px;
   padding:7px 11px;cursor:pointer;font-size:.74rem;white-space:nowrap;transition:all .12s;flex-shrink:0;}
@@ -175,7 +175,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.54</span>
+  <span class="ver">v2.55</span>
 </header>
 <div class="main-wrap">
   <!-- サイドパネル -->
@@ -241,11 +241,16 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
     </div>
 
     <div id="topicSection" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
         <div class="sec-label">⑤ トピック</div>
-        <button id="bubbleToggleBtn" onclick="toggleBubbles()"
-          style="font-size:.6rem;padding:2px 7px;background:var(--rail);border:1px solid var(--amber);
-          color:var(--amber);border-radius:4px;cursor:pointer">💬 常時表示ON</button>
+        <div style="display:flex;gap:4px">
+          <button id="bubbleSideBtn" onclick="toggleBubbleSide()"
+            style="font-size:.6rem;padding:2px 7px;background:var(--rail);border:1px solid var(--amber);
+            color:var(--amber);border-radius:4px;cursor:pointer" title="吹き出しの向き（上下↔右）。縦長の路線は『右』がオススメ">↕ 上下</button>
+          <button id="bubbleToggleBtn" onclick="toggleBubbles()"
+            style="font-size:.6rem;padding:2px 7px;background:var(--rail);border:1px solid var(--amber);
+            color:var(--amber);border-radius:4px;cursor:pointer">💬 常時表示ON</button>
+        </div>
       </div>
       <div class="topic-list" id="topicList"></div>
       <div class="topic-add-row">
@@ -1083,6 +1088,13 @@ function setDateMode(mode,btn){
 
 // ===== トピック =====
 let bubbleVisible=true;
+let bubbleSide='top';   // 'top'=上下 / 'right'=右（縦長の路線で線を隠さない）
+function toggleBubbleSide(){
+  bubbleSide=(bubbleSide==='top')?'right':'top';
+  const b=document.getElementById('bubbleSideBtn');
+  b.textContent=(bubbleSide==='top')?'↕ 上下':'→ 右';
+  if(stations.length>0&&bubbleVisible)redrawTopicMarkers();
+}
 function toggleBubbles(){
   bubbleVisible=!bubbleVisible;
   const btn=document.getElementById('bubbleToggleBtn');
@@ -1190,13 +1202,21 @@ function redrawTopicMarkers(){
     const m=L.marker([pos.lat,pos.lon],{icon:dotIcon,interactive:false}).addTo(map);
 
     if(bubbleVisible){
-      // 積み重なってる分だけ上にずらして表示（重なりよけ）
-      const yOff=-8 - v.stack*STACK_STEP;
+      // 積み重なってる分だけずらして表示（重なりよけ）
+      // 上下モード=上へタテ積み / 右モード=右に出して近接ぶんだけタテにずらす（線は左に見える）
+      let tipDir, tipOff;
+      if(bubbleSide==='right'){
+        tipDir='right';
+        tipOff=[8, -v.stack*STACK_STEP];
+      }else{
+        tipDir='top';
+        tipOff=[0, -8 - v.stack*STACK_STEP];
+      }
       m.bindTooltip(
         '<div style="font-size:.68rem;line-height:1.4;min-width:130px;max-width:160px;white-space:normal;">'
         +'<span style="color:'+col+';display:block;font-size:.62rem;margin-bottom:2px">'+fmtTopicLabel(t)+'</span>'
         +t.text+'</div>',
-        {permanent:true, direction:'top', className:'topic-tooltip', offset:[0,yOff], interactive:true}
+        {permanent:true, direction:tipDir, className:'topic-tooltip', offset:tipOff, interactive:true}
       );
       m.openTooltip();
       // 吹き出しのDOMを取得して「クリックで最前面」を仕込む
@@ -1479,7 +1499,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.54',
+    version:'2.55',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1548,6 +1568,8 @@ function resetAll(){
   if(bp&&bj){ bp.classList.add('active'); bj.classList.remove('active'); }
   followMode=false;
   const bf=document.getElementById('btnFollow'); if(bf){ bf.classList.remove('active'); bf.textContent='🎯 追尾'; }
+  bubbleSide='top';
+  const bsb=document.getElementById('bubbleSideBtn'); if(bsb)bsb.textContent='↕ 上下';
   // セクション・駅一覧・下部バーを非表示＆クリア（最初の状態に戻す）
   ['terminalSection','yearSection','warekiSection','topicSection','drawSection','stationListSection','saveSection','hr2','mapOverlay'].forEach(id=>{
     const el=document.getElementById(id);
