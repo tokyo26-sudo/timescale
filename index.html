@@ -13,7 +13,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700;900&display=swap');
 :root{
   --bg:#07111F;--panel:#0D1E30;--amber:#F5A623;
-  --cyan:#3ECFCF;--white:#EEF2F7;--muted:#4A6080;--rail:#1E3A5A;
+  --cyan:#3ECFCF;--white:#EEF2F7;--muted:#7E97BC;--rail:#1E3A5A;
   --green:#4CE88A;--red:#FF5F5F;
   --font-mono:'Share Tech Mono',monospace;--font-body:'Noto Sans JP',sans-serif;
 }
@@ -39,7 +39,8 @@ header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--ambe
 .route-btn:hover{background:var(--rail);}
 .route-btn.sel{color:var(--white);}
 .route-swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-.route-range{font-size:.55rem;opacity:.45;margin-left:auto;}
+.route-name{flex:0 0 auto;min-width:0;max-width:62%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.route-range{flex:0 1 auto;min-width:0;margin-left:auto;text-align:right;white-space:normal;font-size:.55rem;opacity:.7;}
 
 /* インプット */
 select,input[type="number"],input[type="text"]{background:var(--bg);border:1px solid var(--rail);
@@ -175,7 +176,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.56</span>
+  <span class="ver">v2.59</span>
 </header>
 <div class="main-wrap">
   <!-- サイドパネル -->
@@ -256,7 +257,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       <div class="topic-add-row">
         <div class="topic-yr-row">
           <input type="text" inputmode="text" class="topic-age-in" id="topicYear" placeholder="西れき年（例: -300000, 138億）" onblur="normalizeYearField(this)"/>
-          <select id="topicMonth" class="topic-month-in"><option value="0">──月</option></select>
+          <select id="topicMonth" class="topic-month-in"><option value="1">1月</option></select>
         </div>
         <input type="text" id="topicText" placeholder="できごとを入力…"/>
         <button class="topic-add-btn" id="topicAddBtn" onclick="addTopic()">＋ 追加</button>
@@ -762,7 +763,7 @@ function topicYearVal(t){ return t.year + ((t.month>0) ? (t.month-1)/12 : 0); }
 // トピックの表示ラベル（月があれば付ける。ただし大昔の「◯年前」には付けない）
 function fmtTopicLabel(t){
   let s=fmtYear(Math.round(t.year));
-  if(t.month>0 && t.year>-10000) s += t.month+'月';
+  if(t.month>1 && t.year>-10000) s += t.month+'月';
   return s;
 }
 
@@ -771,6 +772,7 @@ let selectedRoute=null, stations=[], totalDist=0;
 let routeLine=null, stMarkers=[], currentMarker=null, topicMarkers=[];
 // 吹き出し最前面管理（クリックで前面に出す。再描画後も順番を覚えておく）
 let topicTopZ=1000; const topicZOrder={};
+let expandedClusters={};   // 近接でまとめた吹き出しを「全部ひらく」かどうか（キー=トピックindexの集合）
 let followMode=false; // スライダ操作・再生で地図が丸を自動追尾するか
 let animTimer=null, isPlaying=false;
 let dateMode='seireki', topics=[], reversed=false, scaleMode='human';
@@ -913,9 +915,11 @@ function buildRouteList(){
     const btn=document.createElement('button');
     btn.className='route-btn';
     const s=r.stations;
+    const a=s[0].name, b=s[s.length-1].name;
+    const rng=(a.length+b.length>20)?`${a}〜<br>${b}`:`${a}〜${b}`;
     btn.innerHTML=`<div class="route-swatch" style="background:${r.color}"></div>
-      <span style="flex:1">${r.name}</span>
-      <span class="route-range">${s[0].name}〜${s[s.length-1].name}</span>`;
+      <span class="route-name">${r.name}</span>
+      <span class="route-range">${rng}</span>`;
     btn.onclick=()=>selectRoute(r,btn);
     list.appendChild(btn);
   });
@@ -967,9 +971,11 @@ function swapTerminals(){
 function buildMonthSelects(){
   ['birthMonth','deathMonth','topicMonth'].forEach(id=>{
     const sel=document.getElementById(id);
-    sel.innerHTML='<option value="0">──月</option>';
+    // 出来事の月は「──月」なし＝1月きめうちデフォルト。始発/終着は従来どおり
+    sel.innerHTML = (id==='topicMonth') ? '' : '<option value="0">──月</option>';
     for(let m=1;m<=12;m++) sel.appendChild(new Option(m+'月',m));
   });
+  const tm=document.getElementById('topicMonth'); if(tm) tm.value='1';
 }
 
 // ===== スケールモード =====
@@ -1112,7 +1118,7 @@ function addTopic(){
   topics.push({year:Math.round(yr),month:mo,text});
   topics.sort((a,b)=>topicYearVal(a)-topicYearVal(b));
   document.getElementById('topicYear').value='';
-  document.getElementById('topicMonth').value='0';
+  document.getElementById('topicMonth').value='1';
   document.getElementById('topicText').value='';
   renderTopicList();
   if(stations.length>0)redrawTopicMarkers();
@@ -1165,8 +1171,11 @@ function renderTopicList(){
 
 function redrawTopicMarkers(){
   topicMarkers.forEach(e=>{try{map.removeLayer(e.marker||e);}catch(e){}});topicMarkers=[];
+  if(!selectedRoute)return;
   const birthYear=getStartVal(), deathYear=getEndVal();
   const col=selectedRoute.color;
+  const CLUSTER_PX=30;   // これより近いと「まとまってる」とみなす（ズームすると離れて解消）
+  const MAX_SHOW=10;     // まとめ吹き出しでふだん見せる件数。こえたらクリックで全部
 
   // ① 表示するトピックを集めて、画面上のピクセル位置を計算
   const visible=[];
@@ -1176,80 +1185,98 @@ function redrawTopicMarkers(){
     const ratio=(ey-birthYear)/(deathYear-birthYear);
     const pos=getPosAtRatio(ratio);
     if(!pos)return;
-    visible.push({t,ti,pos,ratio,pt:map.latLngToContainerPoint([pos.lat,pos.lon]),stack:0});
+    visible.push({t,ti,pos,ratio,pt:map.latLngToContainerPoint([pos.lat,pos.lon])});
   });
-
-  // ② 近い吹き出し同士をタテに積む（重なりよけ）。年月の古い順で下から積む
+  if(visible.length===0)return;
   visible.sort((a,b)=>topicYearVal(a.t)-topicYearVal(b.t));
-  const CLUSTER_PX=30;   // これより近いと「重なってる」とみなす（ズームすると離れて解消）
-  for(let i=0;i<visible.length;i++){
-    let lv=0;
-    for(let j=0;j<i;j++){
-      const dx=visible[i].pt.x-visible[j].pt.x, dy=visible[i].pt.y-visible[j].pt.y;
-      if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_PX) lv=Math.max(lv, visible[j].stack+1);
-    }
-    visible[i].stack=lv;
+
+  // ② 近接で「グループ」にまとめる（連結成分／union-find）
+  const n=visible.length, parent=visible.map((_,i)=>i);
+  const find=x=>{while(parent[x]!==x){parent[x]=parent[parent[x]];x=parent[x];}return x;};
+  for(let i=0;i<n;i++)for(let j=0;j<i;j++){
+    const dx=visible[i].pt.x-visible[j].pt.x, dy=visible[i].pt.y-visible[j].pt.y;
+    if(dx*dx+dy*dy<CLUSTER_PX*CLUSTER_PX) parent[find(i)]=find(j);
   }
+  const gm={};
+  for(let i=0;i<n;i++){const r=find(i);(gm[r]=gm[r]||[]).push(i);}
+  const groups=Object.values(gm);
 
-  // ③ 描画
-  const STACK_STEP=50;   // 1段ぶん上にずらす高さ(px)
-  visible.forEach(v=>{
-    const t=v.t, ti=v.ti, pos=v.pos;
-    // 点マーカー
-    const dotIcon=L.divIcon({className:'',
-      html:'<div style="background:'+col+';border:2px solid #fff;border-radius:50%;width:10px;height:10px;box-shadow:0 0 5px rgba(0,0,0,.7)"></div>',
-      iconSize:[10,10],iconAnchor:[5,5]});
-    const m=L.marker([pos.lat,pos.lon],{icon:dotIcon,interactive:false}).addTo(map);
+  // ③ 描画（グループごとに点は全部、吹き出しは1個）
+  groups.forEach(idxs=>{
+    idxs.sort((a,b)=>topicYearVal(visible[a].t)-topicYearVal(visible[b].t));
+    // 点（駅の丸）は出来事ごとに残す
+    idxs.forEach(k=>{
+      const pos=visible[k].pos;
+      const dotIcon=L.divIcon({className:'',
+        html:'<div style="background:'+col+';border:2px solid #fff;border-radius:50%;width:10px;height:10px;box-shadow:0 0 5px rgba(0,0,0,.7)"></div>',
+        iconSize:[10,10],iconAnchor:[5,5]});
+      topicMarkers.push({marker:L.marker([pos.lat,pos.lon],{icon:dotIcon,interactive:false}).addTo(map)});
+    });
+    if(!bubbleVisible)return;
 
-    if(bubbleVisible){
-      // 積み重なってる分だけずらして表示（重なりよけ）
-      // 上下モード=上へタテ積み / 右モード(あん2)=線の向きを見て「直角の右側」に出す
-      let tipDir, tipOff;
-      if(bubbleSide==='right'){
-        // 近接(ratio±eps)の2点から、線の画面上の向き(接線)を求める
-        const eps=0.004;
-        const pa=getPosAtRatio(Math.max(0,v.ratio-eps));
-        const pb=getPosAtRatio(Math.min(1,v.ratio+eps));
-        let dx=0,dy=0;
-        if(pa&&pb){
-          const A=map.latLngToContainerPoint([pa.lat,pa.lon]);
-          const B=map.latLngToContainerPoint([pb.lat,pb.lon]);
-          dx=B.x-A.x; dy=B.y-A.y;
-        }
-        const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;          // 接線(単位ベクトル)
-        // 垂線2つ (-dy,dx)/(dy,-dx) のうち「より右(x大)」を選ぶ。同点なら上(y小)
-        let ax=-dy, ay=dx, bx=dy, by=-dx, nx, ny;
-        if(ax>bx || (ax===bx && ay<by)){ nx=ax; ny=ay; } else { nx=bx; ny=by; }
-        const BASE=16;   // 線から離す距離(px)
-        // 直角方向に離す＋近接ぶんは接線方向にずらして読めるように
-        tipDir='right';
-        tipOff=[ nx*BASE + dx*(v.stack*STACK_STEP), ny*BASE + dy*(v.stack*STACK_STEP) ];
-      }else{
-        tipDir='top';
-        tipOff=[0, -8 - v.stack*STACK_STEP];
+    const rep=visible[idxs[0]];                 // 代表＝いちばん古い
+    const key=idxs.map(k=>visible[k].ti).join(',');
+    const isCluster=idxs.length>1;
+    const expanded=!!expandedClusters[key];
+
+    // 中身HTML
+    let inner;
+    if(!isCluster){
+      inner='<span style="color:'+col+';display:block;font-size:.62rem;margin-bottom:2px">'+fmtTopicLabel(rep.t)+'</span>'+rep.t.text;
+    }else{
+      const show=expanded?idxs:idxs.slice(0,MAX_SHOW);
+      inner=show.map(k=>{const t=visible[k].t;
+        return '<div style="margin-bottom:2px"><span style="color:'+col+';font-size:.6rem;margin-right:4px">'+fmtTopicLabel(t)+'</span>'+t.text+'</div>';
+      }).join('');
+      const extra=idxs.length-MAX_SHOW;
+      if(!expanded&&extra>0){
+        inner+='<div class="cluster-toggle" style="margin-top:3px;color:'+col+';cursor:pointer;font-size:.62rem;border-top:1px solid rgba(255,255,255,.18);padding-top:3px">＋ ほか'+extra+'件（クリックで全部）</div>';
+      }else if(expanded&&idxs.length>MAX_SHOW){
+        inner+='<div class="cluster-toggle" style="margin-top:3px;color:'+col+';cursor:pointer;font-size:.62rem;border-top:1px solid rgba(255,255,255,.18);padding-top:3px">▲ とじる</div>';
       }
-      m.bindTooltip(
-        '<div style="font-size:.68rem;line-height:1.4;min-width:130px;max-width:160px;white-space:normal;">'
-        +'<span style="color:'+col+';display:block;font-size:.62rem;margin-bottom:2px">'+fmtTopicLabel(t)+'</span>'
-        +t.text+'</div>',
-        {permanent:true, direction:tipDir, className:'topic-tooltip', offset:tipOff, interactive:true}
-      );
-      m.openTooltip();
-      // 吹き出しのDOMを取得して「クリックで最前面」を仕込む
-      const tipEl=m.getTooltip()&&m.getTooltip().getElement();
-      if(tipEl){
-        tipEl.style.cursor='pointer';
-        tipEl.style.pointerEvents='auto';   // ← クリックを確実に受け取る
-        // 既定は下の段ほど手前（端が重なっても各段の年が見える）。クリック済みなら最前面を維持
-        tipEl.style.zIndex = (topicZOrder[ti]!=null) ? topicZOrder[ti] : (700 - v.stack);
-        tipEl.addEventListener('click',function(ev){
-          ev.stopPropagation();
-          topicZOrder[ti]=(++topicTopZ); // 覚えておく（再描画後も維持）
-          tipEl.style.zIndex=topicZOrder[ti];
+    }
+
+    // 位置：あん2(線に直角の右) or 上下。吹き出しは1個なので段ずらしは無し
+    let tipDir, tipOff;
+    if(bubbleSide==='right'){
+      const eps=0.004;
+      const pa=getPosAtRatio(Math.max(0,rep.ratio-eps)), pb=getPosAtRatio(Math.min(1,rep.ratio+eps));
+      let dx=0,dy=0;
+      if(pa&&pb){const A=map.latLngToContainerPoint([pa.lat,pa.lon]),B=map.latLngToContainerPoint([pb.lat,pb.lon]);dx=B.x-A.x;dy=B.y-A.y;}
+      const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+      let ax=-dy, ay=dx, bx=dy, by=-dx, nx, ny;
+      if(ax>bx||(ax===bx&&ay<by)){nx=ax;ny=ay;}else{nx=bx;ny=by;}
+      tipDir='right'; tipOff=[nx*16, ny*16];
+    }else{
+      tipDir='top'; tipOff=[0,-8];
+    }
+
+    const anchor=L.marker([rep.pos.lat,rep.pos.lon],{icon:L.divIcon({className:'',html:'',iconSize:[0,0]}),interactive:false}).addTo(map);
+    anchor.bindTooltip(
+      '<div style="font-size:.68rem;line-height:1.4;min-width:130px;max-width:210px;white-space:normal;">'+inner+'</div>',
+      {permanent:true, direction:tipDir, className:'topic-tooltip', offset:tipOff, interactive:true}
+    );
+    anchor.openTooltip();
+    const tipEl=anchor.getTooltip()&&anchor.getTooltip().getElement();
+    if(tipEl){
+      tipEl.style.cursor='pointer';
+      tipEl.style.pointerEvents='auto';
+      tipEl.style.zIndex=(topicZOrder[key]!=null)?topicZOrder[key]:700;
+      tipEl.addEventListener('click',function(ev){
+        ev.stopPropagation();
+        topicZOrder[key]=(++topicTopZ);   // クリックで最前面（再描画後も維持）
+        tipEl.style.zIndex=topicZOrder[key];
+      });
+      const tg=tipEl.querySelector('.cluster-toggle');
+      if(tg){
+        tg.addEventListener('click',function(ev){
+          ev.stopPropagation();           // 展開/折りたたみ（最前面化はさせない）
+          expandedClusters[key]=!expandedClusters[key];
+          redrawTopicMarkers();
         });
       }
     }
-    topicMarkers.push({marker:m, year:t.year});
+    topicMarkers.push({marker:anchor});
   });
 }
 
@@ -1515,7 +1542,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.56',
+    version:'2.59',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1573,6 +1600,7 @@ function resetAll(){
   renderTopicList();
   // 吹き出し最前面の記憶もリセット
   topicTopZ=1000; for(const k in topicZOrder) delete topicZOrder[k];
+  expandedClusters={};
   // スケール・表記・追尾をデフォルトに戻す
   scaleMode='human';
   document.querySelectorAll('#scaleHuman,#scaleEarth').forEach(b=>b.classList.remove('active'));
