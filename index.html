@@ -175,7 +175,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.55</span>
+  <span class="ver">v2.56</span>
 </header>
 <div class="main-wrap">
   <!-- サイドパネル -->
@@ -1176,7 +1176,7 @@ function redrawTopicMarkers(){
     const ratio=(ey-birthYear)/(deathYear-birthYear);
     const pos=getPosAtRatio(ratio);
     if(!pos)return;
-    visible.push({t,ti,pos,pt:map.latLngToContainerPoint([pos.lat,pos.lon]),stack:0});
+    visible.push({t,ti,pos,ratio,pt:map.latLngToContainerPoint([pos.lat,pos.lon]),stack:0});
   });
 
   // ② 近い吹き出し同士をタテに積む（重なりよけ）。年月の古い順で下から積む
@@ -1203,11 +1203,27 @@ function redrawTopicMarkers(){
 
     if(bubbleVisible){
       // 積み重なってる分だけずらして表示（重なりよけ）
-      // 上下モード=上へタテ積み / 右モード=右に出して近接ぶんだけタテにずらす（線は左に見える）
+      // 上下モード=上へタテ積み / 右モード(あん2)=線の向きを見て「直角の右側」に出す
       let tipDir, tipOff;
       if(bubbleSide==='right'){
+        // 近接(ratio±eps)の2点から、線の画面上の向き(接線)を求める
+        const eps=0.004;
+        const pa=getPosAtRatio(Math.max(0,v.ratio-eps));
+        const pb=getPosAtRatio(Math.min(1,v.ratio+eps));
+        let dx=0,dy=0;
+        if(pa&&pb){
+          const A=map.latLngToContainerPoint([pa.lat,pa.lon]);
+          const B=map.latLngToContainerPoint([pb.lat,pb.lon]);
+          dx=B.x-A.x; dy=B.y-A.y;
+        }
+        const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;          // 接線(単位ベクトル)
+        // 垂線2つ (-dy,dx)/(dy,-dx) のうち「より右(x大)」を選ぶ。同点なら上(y小)
+        let ax=-dy, ay=dx, bx=dy, by=-dx, nx, ny;
+        if(ax>bx || (ax===bx && ay<by)){ nx=ax; ny=ay; } else { nx=bx; ny=by; }
+        const BASE=16;   // 線から離す距離(px)
+        // 直角方向に離す＋近接ぶんは接線方向にずらして読めるように
         tipDir='right';
-        tipOff=[8, -v.stack*STACK_STEP];
+        tipOff=[ nx*BASE + dx*(v.stack*STACK_STEP), ny*BASE + dy*(v.stack*STACK_STEP) ];
       }else{
         tipDir='top';
         tipOff=[0, -8 - v.stack*STACK_STEP];
@@ -1499,7 +1515,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.55',
+    version:'2.56',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
