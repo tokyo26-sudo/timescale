@@ -21,7 +21,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 body{background:var(--bg);color:var(--white);font-family:var(--font-body);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 header{padding:9px 15px 7px;border-bottom:1px solid var(--rail);display:flex;align-items:center;gap:9px;flex-shrink:0;flex-wrap:wrap;}
 header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--amber);font-family:var(--font-mono);white-space:nowrap;}
-.ver{margin-left:auto;font-size:.56rem;font-family:var(--font-mono);color:var(--muted);opacity:.6;}
+.ver{margin-left:auto;font-size:.56rem;font-family:var(--font-mono);color:var(--muted);opacity:.9;}
 /* トースト（画面うえ真ん中・3秒で消える） */
 .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-14px);
   z-index:100001;background:#0D1E30F2;border:1px solid var(--amber);border-radius:8px;
@@ -88,6 +88,9 @@ select:focus,input:focus{border-color:var(--amber);}
 .btn-primary{background:var(--amber);color:var(--bg);font-family:var(--font-mono);font-size:.76rem;
   font-weight:bold;letter-spacing:.07em;border:none;padding:8px;border-radius:4px;cursor:pointer;width:100%;transition:opacity .13s;}
 .btn-primary:hover{opacity:.85;}
+.btn-redraw{background:var(--cyan);color:var(--bg);font-family:var(--font-mono);font-size:.74rem;
+  font-weight:bold;letter-spacing:.07em;border:none;padding:8px;border-radius:6px;cursor:pointer;width:100%;transition:opacity .13s;}
+.btn-redraw:hover{opacity:.85;}
 .btn-sm-row{display:flex;gap:5px;}
 .btn-sm{flex:1;background:var(--rail);color:var(--white);font-family:var(--font-mono);font-size:.66rem;
   border:1px solid var(--muted);padding:6px 0;border-radius:4px;cursor:pointer;transition:all .12s;text-align:center;}
@@ -209,7 +212,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.63</span>
+  <span class="ver">v2.64</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -249,6 +252,10 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 <div class="main-wrap">
   <!-- サイドパネル -->
   <div class="side-panel" id="sidePanel">
+
+    <div id="redrawTop" style="display:none">
+      <button class="btn-redraw" onclick="drawLife()" title="設定を変えたら、ここを押すと描き直すヨ">🔁 再表示</button>
+    </div>
 
     <div>
       <div class="sec-label">① 新幹線を選ぶ</div>
@@ -938,7 +945,7 @@ function selectRoute(route,btn){
   btn.classList.add('sel');btn.style.borderColor=route.color;btn.style.color=route.color;
   selectedRoute=route;reversed=false;
   buildTerminalSelects(route);
-  ['terminalSection','yearSection','warekiSection','topicSection','drawSection'].forEach(id=>{
+  ['redrawTop','terminalSection','yearSection','warekiSection','topicSection','drawSection'].forEach(id=>{
     document.getElementById(id).style.display='';
   });
   ['stationListSection','saveSection'].forEach(id=>{document.getElementById(id).style.display='none';});
@@ -1550,7 +1557,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.63',
+    version:'2.64',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1623,7 +1630,7 @@ function resetAll(){
   bubbleSide='top';
   const bsb=document.getElementById('bubbleSideBtn'); if(bsb)bsb.textContent='↕ 上下';
   // セクション・駅一覧・下部バーを非表示＆クリア（最初の状態に戻す）
-  ['terminalSection','yearSection','warekiSection','topicSection','drawSection','stationListSection','saveSection','hr2','mapOverlay'].forEach(id=>{
+  ['redrawTop','terminalSection','yearSection','warekiSection','topicSection','drawSection','stationListSection','saveSection','hr2','mapOverlay'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.style.display='none';
   });
