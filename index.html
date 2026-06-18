@@ -22,6 +22,29 @@ body{background:var(--bg);color:var(--white);font-family:var(--font-body);height
 header{padding:9px 15px 7px;border-bottom:1px solid var(--rail);display:flex;align-items:center;gap:9px;flex-shrink:0;flex-wrap:wrap;}
 header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--amber);font-family:var(--font-mono);white-space:nowrap;}
 .ver{margin-left:auto;font-size:.56rem;font-family:var(--font-mono);color:var(--muted);opacity:.6;}
+/* トースト（画面うえ真ん中・3秒で消える） */
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-14px);
+  z-index:100001;background:#0D1E30F2;border:1px solid var(--amber);border-radius:8px;
+  padding:9px 18px;font-size:.78rem;color:var(--white);font-family:var(--font-body);
+  box-shadow:0 4px 18px rgba(0,0,0,.65);max-width:84vw;text-align:center;line-height:1.45;
+  opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{border-color:var(--red);}
+/* 使い方モーダル */
+.modal-back{position:fixed;inset:0;z-index:100000;background:rgba(3,8,16,.74);
+  display:none;align-items:flex-start;justify-content:center;padding:36px 16px;overflow-y:auto;}
+.modal-back.show{display:flex;}
+.modal-box{background:var(--panel);border:1px solid var(--amber);border-radius:10px;
+  max-width:480px;width:100%;padding:20px 24px 24px;box-shadow:0 8px 34px rgba(0,0,0,.72);position:relative;}
+.modal-box h2{font-size:.92rem;color:var(--amber);font-family:var(--font-mono);letter-spacing:.08em;margin-bottom:6px;}
+.modal-box h3{font-size:.74rem;color:var(--cyan);margin:15px 0 5px;font-weight:700;letter-spacing:.04em;}
+.modal-box p{font-size:.72rem;line-height:1.75;color:var(--white);}
+.modal-box ol,.modal-box ul{padding-left:1.35em;margin:4px 0;}
+.modal-box li{font-size:.72rem;line-height:1.8;color:var(--white);}
+.modal-box .mhint{font-size:.64rem;color:var(--muted);margin-top:16px;line-height:1.6;}
+.modal-close{position:absolute;top:9px;right:13px;background:transparent;border:none;color:var(--muted);
+  font-size:1.25rem;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--white);}
 .main-wrap{display:flex;flex:1;overflow:hidden;}
 
 /* サイドパネル */
@@ -182,11 +205,47 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button onclick="toggleSidebar()" id="btnSidebar" title="メニューを隠す/表示" style="font-size:.8rem;padding:2px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;cursor:pointer;">◀</button>
   <h1>◉ タイムスケール路線図</h1>
   <span class="subtitle-en" style="font-size:.64rem;color:var(--muted)">TIMESCALE SHINKANSEN</span>
+  <button onclick="openHelp()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;white-space:nowrap;">❓ 使い方</button>
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.62</span>
+  <span class="ver">v2.63</span>
 </header>
+
+<!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
+<div class="toast" id="toast"></div>
+
+<!-- 使い方モーダル -->
+<div class="modal-back" id="helpModal" onclick="if(event.target===this)closeHelp()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeHelp()" title="とじる">×</button>
+    <h2>◉ 使い方</h2>
+    <p>人生や歴史の出来事を、実在の路線の上に「時間＝距離」で並べる地図ツールだヨ。</p>
+
+    <h3>▶ 手じゅん</h3>
+    <ol>
+      <li>路線を選ぶ（新幹線・都市鉄道・海外）</li>
+      <li>始発駅と終着駅をえらぶ</li>
+      <li>開始の年・終了の年を入れる</li>
+      <li>スケール（人／地球）と年の表記をえらぶ</li>
+      <li>出来事（トピック）を年と内ようで追加</li>
+      <li>「▶ タイムスケールを表示」をおす！</li>
+    </ol>
+
+    <h3>✦ できること</h3>
+    <ul>
+      <li>💬 出来事を路線の上に常時ひょうじ</li>
+      <li>↕ 上下／→ 右　吹き出しの向きを切りかえ</li>
+      <li>▶ 再生・🎯 追尾で時間をたどる</li>
+      <li>🔗 URLで共有（リンクをコピー）</li>
+      <li>📂 JSON・CSVで保存／よみこみ</li>
+      <li>🗑 リセットで最初から</li>
+    </ul>
+
+    <p class="mhint">ヒント：年は「138億」「紀元前300」みたいに入れてもOKだヨ。地球スケールにすると、うんと昔の出来事も並べられるネ！</p>
+  </div>
+</div>
+
 <div class="main-wrap">
   <!-- サイドパネル -->
   <div class="side-panel" id="sidePanel">
@@ -1491,7 +1550,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.62',
+    version:'2.63',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1678,7 +1737,24 @@ function loadFromHash(){
 function setStatus(msg,isErr){
   const el=document.getElementById('statusMsg');
   el.textContent=msg;el.className='status-msg'+(isErr?' err':'');
+  showToast(msg,isErr);
 }
+
+// ===== トースト（画面うえ真ん中・3秒で消える） =====
+let toastTimer=null;
+function showToast(msg,isErr){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.className='toast show'+(isErr?' err':'');
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.className='toast'+(isErr?' err':'');},3000);
+}
+
+// ===== 使い方モーダル =====
+function openHelp(){const m=document.getElementById('helpModal');if(m)m.classList.add('show');}
+function closeHelp(){const m=document.getElementById('helpModal');if(m)m.classList.remove('show');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHelp();});
 
 // ===== 初期化 =====
 buildRouteList();
