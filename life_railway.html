@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人生の路線図</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700;900&display=swap');
+  :root {
+    --bg:#07111F; --panel:#0D1E30; --amber:#F5A623; --amber-dim:#8A5C0F;
+    --cyan:#3ECFCF; --white:#EEF2F7; --muted:#4A6080; --rail:#1E3A5A;
+    --green:#4CE88A; --red:#FF5F5F;
+    --font-mono:'Share Tech Mono',monospace; --font-body:'Noto Sans JP',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--white);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;}
+  header{padding:14px 20px 10px;border-bottom:1px solid var(--rail);display:flex;align-items:baseline;gap:12px;}
+  header h1{font-size:1rem;font-weight:900;letter-spacing:.12em;color:var(--amber);font-family:var(--font-mono);}
+  header span{font-size:.7rem;color:var(--muted);letter-spacing:.05em;}
+  .main-wrap{display:flex;flex:1;height:calc(100vh - 49px);}
+  .side-panel{width:290px;min-width:250px;background:var(--panel);border-right:1px solid var(--rail);
+    display:flex;flex-direction:column;overflow-y:auto;padding:14px 14px;gap:14px;}
+  .sec-label{font-size:.6rem;font-family:var(--font-mono);color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:5px;}
+  .input-row{display:flex;flex-direction:column;gap:7px;}
+  input[type="text"],input[type="number"]{background:var(--bg);border:1px solid var(--rail);color:var(--white);
+    font-family:var(--font-mono);font-size:.8rem;padding:7px 9px;border-radius:4px;width:100%;outline:none;transition:border-color .2s;}
+  input:focus{border-color:var(--amber);}
+  .year-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .year-field label{font-size:.6rem;font-family:var(--font-mono);color:var(--muted);display:block;margin-bottom:3px;}
+  .btn-primary{background:var(--amber);color:var(--bg);font-family:var(--font-mono);font-size:.8rem;font-weight:bold;
+    letter-spacing:.1em;border:none;padding:9px;border-radius:4px;cursor:pointer;width:100%;transition:opacity .15s;}
+  .btn-primary:hover{opacity:.85;} .btn-primary:disabled{opacity:.35;cursor:not-allowed;}
+  .status-msg{font-size:.7rem;font-family:var(--font-mono);color:var(--cyan);min-height:1.2em;}
+  .status-msg.err{color:var(--red);}
+
+  /* 候補リスト */
+  .suggest-list{display:flex;flex-direction:column;gap:3px;max-height:140px;overflow-y:auto;}
+  .suggest-item{font-size:.72rem;font-family:var(--font-mono);padding:5px 8px;border-radius:3px;
+    cursor:pointer;border:1px solid var(--rail);color:var(--muted);transition:all .1s;}
+  .suggest-item:hover{border-color:var(--amber);color:var(--amber);}
+  .suggest-item.sel{border-color:var(--cyan);color:var(--cyan);}
+
+  /* 始発・終着ドロップダウン */
+  select{background:var(--bg);border:1px solid var(--rail);color:var(--white);font-family:var(--font-mono);
+    font-size:.78rem;padding:6px 8px;border-radius:4px;width:100%;outline:none;}
+  select:focus{border-color:var(--amber);}
+
+  /* スライダーセクション */
+  .slider-section{display:flex;flex-direction:column;gap:9px;}
+  .age-display{display:flex;align-items:baseline;gap:7px;}
+  .age-num{font-size:2.2rem;font-family:var(--font-mono);color:var(--amber);line-height:1;}
+  .age-unit{font-size:.72rem;color:var(--muted);}
+  .year-display{font-size:.75rem;font-family:var(--font-mono);color:var(--cyan);}
+  input[type="range"]{-webkit-appearance:none;width:100%;height:4px;background:var(--rail);border-radius:2px;outline:none;cursor:pointer;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--amber);box-shadow:0 0 7px var(--amber);cursor:pointer;}
+  .station-info{background:var(--bg);border:1px solid var(--rail);border-radius:5px;padding:10px;display:flex;flex-direction:column;gap:5px;}
+  .station-name-big{font-size:1.05rem;font-weight:700;color:var(--white);}
+  .station-sub{font-size:.68rem;font-family:var(--font-mono);color:var(--muted);}
+  .prog-wrap{background:var(--rail);height:3px;border-radius:2px;overflow:hidden;margin-top:3px;}
+  .prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red));transition:width .2s;}
+  .anim-controls{display:flex;gap:7px;}
+  .btn-anim{flex:1;background:transparent;border:1px solid var(--rail);color:var(--muted);
+    font-family:var(--font-mono);font-size:.7rem;padding:6px 0;border-radius:4px;cursor:pointer;transition:all .15s;}
+  .btn-anim:hover,.btn-anim.active{border-color:var(--amber);color:var(--amber);}
+
+  /* 駅リスト */
+  .station-list{display:flex;flex-direction:column;max-height:180px;overflow-y:auto;}
+  .sli{display:flex;align-items:center;gap:7px;padding:4px 3px;font-size:.7rem;font-family:var(--font-mono);
+    cursor:pointer;border-radius:3px;transition:background .1s;}
+  .sli:hover{background:var(--rail);}
+  .sli.cur{color:var(--amber);}
+  .sli-dot{width:5px;height:5px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .sli.cur .sli-dot{background:var(--amber);box-shadow:0 0 4px var(--amber);}
+  .sli-yr{color:var(--muted);margin-left:auto;font-size:.65rem;}
+
+  #map{flex:1;background:var(--bg);}
+  .leaflet-tile{filter:brightness(.6) saturate(.45) hue-rotate(200deg);}
+  .custom-pulse{border-radius:50%;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(245,166,35,.7);}70%{box-shadow:0 0 0 13px rgba(245,166,35,0);}100%{box-shadow:0 0 0 0 rgba(245,166,35,0);}}
+  ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--rail);}
+</style>
+</head>
+<body>
+<header>
+  <h1>◉ 人生の路線図</h1>
+  <span>LIFE RAILWAY MAP</span>
+</header>
+<div class="main-wrap">
+  <div class="side-panel">
+
+    <!-- STEP 1: 路線名 -->
+    <div>
+      <div class="sec-label">① 路線名を入力</div>
+      <div class="input-row">
+        <input type="text" id="routeInput" placeholder="例: 東海道新幹線、丸ノ内線…" />
+        <button class="btn-primary" id="btnFind" onclick="findRoute()">🔍 路線をさがす</button>
+      </div>
+    </div>
+
+    <!-- 路線候補 -->
+    <div id="suggestSection" style="display:none">
+      <div class="sec-label">② 路線を選ぶ</div>
+      <div class="suggest-list" id="suggestList"></div>
+    </div>
+
+    <!-- STEP 2: 始発・終着 -->
+    <div id="terminalSection" style="display:none">
+      <div class="sec-label">③ 始発・終着を選ぶ</div>
+      <div class="input-row">
+        <div>
+          <div class="year-field"><label>🟢 始発（生まれ）</label></div>
+          <select id="startSel"></select>
+        </div>
+        <div>
+          <div class="year-field"><label>🔴 終着（なくなる）</label></div>
+          <select id="endSel"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: 年 -->
+    <div id="yearSection" style="display:none">
+      <div class="sec-label">④ 生没年</div>
+      <div class="year-row">
+        <div class="year-field"><label>生まれた年</label>
+          <input type="number" id="birthYear" value="1900" min="1800" max="2100"/></div>
+        <div class="year-field"><label>なくなった年</label>
+          <input type="number" id="deathYear" value="1980" min="1800" max="2100"/></div>
+      </div>
+      <br>
+      <button class="btn-primary" id="btnDraw" onclick="drawLife()">▶ 人生を表示する</button>
+    </div>
+
+    <div class="status-msg" id="statusMsg">路線名を入れてネ！</div>
+
+    <!-- スライダー -->
+    <div class="slider-section" id="sliderSection" style="display:none">
+      <div class="sec-label">▸ 年れい</div>
+      <div class="age-display">
+        <div class="age-num" id="ageNum">0</div>
+        <div class="age-unit">歳</div>
+        <div class="year-display" id="yearDisp">──</div>
+      </div>
+      <input type="range" id="ageSlider" min="0" max="100" value="0" oninput="onSlider(this.value)"/>
+      <div class="station-info">
+        <div class="station-name-big" id="nearStation">──</div>
+        <div class="station-sub" id="nearStationSub"></div>
+        <div class="prog-wrap"><div class="prog-fill" id="progBar" style="width:0%"></div></div>
+      </div>
+      <div class="anim-controls">
+        <button class="btn-anim" id="btnPlay" onclick="toggleAnim()">▶ 再生</button>
+        <button class="btn-anim" onclick="resetAnim()">⏮ リセット</button>
+      </div>
+    </div>
+
+    <!-- 駅リスト -->
+    <div id="stationListSection" style="display:none">
+      <div class="sec-label">▸ 駅の一らん</div>
+      <div class="station-list" id="stationList"></div>
+    </div>
+
+  </div>
+  <div id="map"></div>
+</div>
+
+<script>
+const map = L.map('map',{zoomControl:true}).setView([36.5,136.5],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© OpenStreetMap contributors', maxZoom:18
+}).addTo(map);
+
+let allRouteRelations = []; // 候補路線
+let selectedRelId = null;   // 選んだリレーションID
+let allStationsOnRoute = []; // 路線上の全駅（順番通り）
+let stations = [];           // 始発〜終着の区間
+let totalDist = 0;
+let routeLine = null, markers = [], currentMarker = null;
+let animTimer = null, isPlaying = false;
+
+// ===== Overpass helper =====
+async function overpass(query) {
+  const fd = new FormData();
+  fd.append('data', query);
+  const res = await fetch('https://overpass-api.de/api/interpreter', { method:'POST', body: fd });
+  const text = await res.text();
+  if (text.trim().startsWith('<')) throw new Error('OverpassからのへんじがXMLだたヨ。しばらくたてから試してネ');
+  return JSON.parse(text);
+}
+
+// ===== ① 路線名で候補を検索 =====
+async function findRoute() {
+  const name = document.getElementById('routeInput').value.trim();
+  if (!name) { setStatus('路線名を入れてネ！', true); return; }
+  document.getElementById('btnFind').disabled = true;
+  setStatus('路線をさがしてルヨ…', false);
+  clearMap();
+  document.getElementById('suggestSection').style.display = 'none';
+  document.getElementById('terminalSection').style.display = 'none';
+  document.getElementById('yearSection').style.display = 'none';
+  document.getElementById('sliderSection').style.display = 'none';
+  document.getElementById('stationListSection').style.display = 'none';
+
+  try {
+    const q = `[out:json][timeout:25];
+(
+  relation["name"="${name}"]["route"~"train|subway|light_rail|monorail|tram|railway"]["type"="route"];
+  relation["name:ja"="${name}"]["route"~"train|subway|light_rail|monorail|tram|railway"]["type"="route"];
+);
+out tags;`;
+    const data = await overpass(q);
+    allRouteRelations = data.elements || [];
+
+    if (!allRouteRelations.length) {
+      setStatus(`「${name}」が見つからなかたヨ。別の名前で試してネ`, true);
+      document.getElementById('btnFind').disabled = false;
+      return;
+    }
+
+    buildSuggestList();
+    setStatus(`${allRouteRelations.length} 件みつかたヨ！路線を選んでネ`, false);
+  } catch(e) {
+    setStatus('エラーが出たヨ: ' + e.message, true);
+  }
+  document.getElementById('btnFind').disabled = false;
+}
+
+// ===== 候補リストを表示 =====
+function buildSuggestList() {
+  const list = document.getElementById('suggestList');
+  list.innerHTML = '';
+  allRouteRelations.forEach(rel => {
+    const t = rel.tags || {};
+    const label = t.name || t['name:ja'] || `ID:${rel.id}`;
+    const sub = [t.ref, t.operator, t.network].filter(Boolean).join(' / ');
+    const item = document.createElement('div');
+    item.className = 'suggest-item';
+    item.innerHTML = `<strong>${label}</strong>${sub ? '<br><span style="font-size:.62rem;opacity:.6">'+sub+'</span>' : ''}`;
+    item.onclick = () => selectRoute(rel.id, item);
+    list.appendChild(item);
+  });
+  document.getElementById('suggestSection').style.display = '';
+}
+
+// ===== ② 路線を選んで駅リストを取得 =====
+async function selectRoute(relId, itemEl) {
+  document.querySelectorAll('.suggest-item').forEach(el => el.classList.remove('sel'));
+  itemEl.classList.add('sel');
+  selectedRelId = relId;
+  setStatus('駅の一らんを取てきてルヨ…', false);
+  document.getElementById('terminalSection').style.display = 'none';
+  document.getElementById('yearSection').style.display = 'none';
+
+  try {
+    // リレーションのメンバー駅を順番通りに取得
+    const q = `[out:json][timeout:30];
+relation(${relId});
+>>;
+out body;`;
+    const data = await overpass(q);
+
+    // まずリレーション自体を取得してメンバー順を保持
+    const q2 = `[out:json][timeout:30];
+relation(${relId});
+out body;`;
+    const data2 = await overpass(q2);
+    const rel = data2.elements.find(e => e.type === 'relation');
+
+    // nodeのid→座標・名前マップ
+    const nodeMap = {};
+    data.elements.filter(e => e.type === 'node').forEach(n => {
+      nodeMap[n.id] = { lat: n.lat, lon: n.lon, tags: n.tags || {} };
+    });
+
+    // メンバーのうちrole="stop"か"platform"かnodeのものを順番通りに
+    const stationMembers = (rel?.members || []).filter(m =>
+      m.type === 'node' && (m.role === 'stop' || m.role === 'stop_entry_only' || m.role === 'stop_exit_only' || m.role === 'platform' || m.role === '')
+    );
+
+    // 重複除去しながら順番通りに並べる（同名駅は最初のだけ）
+    const seen = new Set();
+    allStationsOnRoute = [];
+    for (const m of stationMembers) {
+      const node = nodeMap[m.ref];
+      if (!node) continue;
+      const name = node.tags.name || node.tags['name:ja'] || '';
+      if (!name) continue;
+      if (seen.has(name)) continue;
+      // platform重複（stop + platformが両方ある駅）を除く
+      seen.add(name);
+      allStationsOnRoute.push({ name, lat: node.lat, lon: node.lon });
+    }
+
+    if (allStationsOnRoute.length < 2) {
+      setStatus('駅データが取れなかたヨ…別の路線を試してネ', true);
+      return;
+    }
+
+    buildTerminalSelects();
+    document.getElementById('terminalSection').style.display = '';
+    document.getElementById('yearSection').style.display = '';
+    setStatus(`${allStationsOnRoute.length} 駅みつかたヨ！始発と終着を選んでネ`, false);
+
+  } catch(e) {
+    setStatus('エラー: ' + e.message, true);
+  }
+}
+
+// ===== 始発・終着のselectを構築 =====
+function buildTerminalSelects() {
+  const startSel = document.getElementById('startSel');
+  const endSel = document.getElementById('endSel');
+  startSel.innerHTML = '';
+  endSel.innerHTML = '';
+  allStationsOnRoute.forEach((s, i) => {
+    const o1 = document.createElement('option'); o1.value = i; o1.textContent = s.name;
+    const o2 = document.createElement('option'); o2.value = i; o2.textContent = s.name;
+    startSel.appendChild(o1);
+    endSel.appendChild(o2);
+  });
+  startSel.value = 0;
+  endSel.value = allStationsOnRoute.length - 1;
+}
+
+// ===== ③ 人生を表示 =====
+function drawLife() {
+  const birthYear = parseInt(document.getElementById('birthYear').value);
+  const deathYear = parseInt(document.getElementById('deathYear').value);
+  const startIdx  = parseInt(document.getElementById('startSel').value);
+  const endIdx    = parseInt(document.getElementById('endSel').value);
+
+  if (birthYear >= deathYear) { setStatus('生まれた年 < なくなた年 にしてネ！', true); return; }
+  if (startIdx >= endIdx) { setStatus('始発は終着より前の駅にしてネ！', true); return; }
+
+  // 区間を切り出す
+  const segment = allStationsOnRoute.slice(startIdx, endIdx + 1);
+
+  // 累積距離
+  let cum = 0;
+  stations = segment.map((s, i) => {
+    if (i > 0) cum += dist(segment[i-1], s);
+    return { name: s.name, lat: s.lat, lon: s.lon, cumDist: cum };
+  });
+  totalDist = stations[stations.length-1].cumDist;
+  const lifeSpan = deathYear - birthYear;
+  stations.forEach(s => { s.year = birthYear + (s.cumDist / totalDist) * lifeSpan; });
+
+  clearMap();
+  drawRoute();
+  setupSlider(birthYear, deathYear);
+  buildStationList(birthYear, deathYear);
+  setStatus(`${stations.length} 駅で人生の路線図できたヨ！`, false);
+}
+
+// ===== 地図に路線を描く =====
+function drawRoute() {
+  const latlngs = stations.map(s => [s.lat, s.lon]);
+  routeLine = L.polyline(latlngs, { color:'#F5A623', weight:3, opacity:.75 }).addTo(map);
+  stations.forEach((s, i) => {
+    const isEnd = i === 0 || i === stations.length-1;
+    const c = L.circleMarker([s.lat, s.lon], {
+      radius: isEnd ? 7 : 4,
+      color: isEnd ? '#EEF2F7' : '#F5A623',
+      fillColor: isEnd ? (i===0 ? '#4CE88A' : '#FF5F5F') : '#07111F',
+      fillOpacity: 1, weight: isEnd ? 2 : 1.5
+    }).addTo(map);
+    c.bindTooltip(s.name, { permanent: false });
+    markers.push(c);
+  });
+  map.fitBounds(routeLine.getBounds(), { padding:[40,40] });
+}
+
+function clearMap() {
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  markers.forEach(m => map.removeLayer(m)); markers = [];
+  if (currentMarker) { map.removeLayer(currentMarker); currentMarker = null; }
+}
+
+// ===== スライダー =====
+function setupSlider(birthYear, deathYear) {
+  const sl = document.getElementById('ageSlider');
+  sl.min = 0; sl.max = deathYear - birthYear; sl.value = 0;
+  document.getElementById('sliderSection').style.display = '';
+  document.getElementById('stationListSection').style.display = '';
+  onSlider(0);
+}
+
+function onSlider(age) {
+  age = parseInt(age);
+  const birthYear = parseInt(document.getElementById('birthYear').value);
+  const deathYear = parseInt(document.getElementById('deathYear').value);
+  const lifeSpan  = deathYear - birthYear;
+  const curYear   = birthYear + age;
+  const ratio     = age / lifeSpan;
+  const curDist   = ratio * totalDist;
+
+  document.getElementById('ageNum').textContent = age;
+  document.getElementById('yearDisp').textContent = curYear + '年';
+  document.getElementById('ageSlider').value = age;
+  document.getElementById('progBar').style.width = (ratio*100) + '%';
+
+  // 現在区間
+  let ni = 0;
+  for (let i = 0; i < stations.length-1; i++) {
+    if (stations[i].cumDist <= curDist) ni = i;
+  }
+  const s = stations[ni], sn = stations[ni+1] || s;
+  const segD = sn.cumDist - s.cumDist;
+  let posLat = s.lat, posLon = s.lon;
+  if (segD > 0) {
+    const t = (curDist - s.cumDist) / segD;
+    posLat = s.lat + t*(sn.lat - s.lat);
+    posLon = s.lon + t*(sn.lon - s.lon);
+  }
+  const near = dist({lat:posLat,lon:posLon},s) < dist({lat:posLat,lon:posLon},sn) ? s : sn;
+  const nd = dist({lat:posLat,lon:posLon}, near);
+
+  document.getElementById('nearStation').textContent = near.name + ' 駅';
+  document.getElementById('nearStationSub').textContent =
+    `${Math.round(nd*10)/10} km 付近 ／ 路線上 ${Math.round(ratio*100)}%`;
+
+  if (currentMarker) map.removeLayer(currentMarker);
+  const icon = L.divIcon({
+    className:'',
+    html:`<div class="custom-pulse" style="width:17px;height:17px;background:#F5A623;border:2px solid #fff;border-radius:50%;"></div>`,
+    iconSize:[17,17], iconAnchor:[8,8]
+  });
+  currentMarker = L.marker([posLat, posLon], {icon}).addTo(map);
+  highlightList(near.name);
+}
+
+function buildStationList(birthYear, deathYear) {
+  const list = document.getElementById('stationList');
+  list.innerHTML = '';
+  stations.forEach((s, i) => {
+    const yr = Math.round(s.year);
+    const age = yr - birthYear;
+    const item = document.createElement('div');
+    item.className = 'sli'; item.dataset.name = s.name;
+    item.innerHTML = `<div class="sli-dot"></div><span>${s.name}</span><span class="sli-yr">${yr}年(${age}歳)</span>`;
+    item.onclick = () => { document.getElementById('ageSlider').value = age; onSlider(age); };
+    list.appendChild(item);
+  });
+}
+
+function highlightList(name) {
+  document.querySelectorAll('.sli').forEach(el => el.classList.toggle('cur', el.dataset.name === name));
+}
+
+function dist(a, b) {
+  const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLon=(b.lon-a.lon)*Math.PI/180;
+  const aa=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa));
+}
+
+// ===== アニメ =====
+function toggleAnim() { isPlaying ? stopAnim() : startAnim(); }
+function startAnim() {
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ 一時停止';
+  document.getElementById('btnPlay').classList.add('active');
+  const sl = document.getElementById('ageSlider');
+  animTimer = setInterval(() => {
+    let v = parseInt(sl.value)+1;
+    if (v > parseInt(sl.max)) v = 0;
+    onSlider(v);
+  }, 80);
+}
+function stopAnim() {
+  isPlaying = false; clearInterval(animTimer);
+  document.getElementById('btnPlay').textContent = '▶ 再生';
+  document.getElementById('btnPlay').classList.remove('active');
+}
+function resetAnim() { stopAnim(); onSlider(0); }
+function setStatus(msg, isErr) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (isErr ? ' err' : '');
+}
+
+document.getElementById('routeInput').addEventListener('keydown', e => { if(e.key==='Enter') findRoute(); });
+</script>
+</body>
+</html>

@@ -97,6 +97,11 @@ select:focus,input:focus{border-color:var(--amber);}
 .btn-redraw{background:var(--cyan);color:var(--bg);font-family:var(--font-mono);font-size:.74rem;
   font-weight:bold;letter-spacing:.07em;border:none;padding:8px;border-radius:6px;cursor:pointer;width:100%;transition:opacity .13s;}
 .btn-redraw:hover{opacity:.85;}
+.btn-reset-bottom{width:100%;background:transparent;border:1px solid #e55;color:#e55;
+  font-family:var(--font-mono);font-size:.66rem;font-weight:bold;letter-spacing:.05em;
+  padding:7px;border-radius:5px;cursor:pointer;transition:opacity .13s;}
+.btn-reset-bottom:hover{background:#e55;color:#fff;}
+.btn-reset-bottom:active{opacity:.7;}
 .btn-sm-row{display:flex;gap:5px;}
 .btn-sm{flex:1;background:var(--rail);color:var(--white);font-family:var(--font-mono);font-size:.66rem;
   border:1px solid var(--muted);padding:6px 0;border-radius:4px;cursor:pointer;transition:all .12s;text-align:center;}
@@ -148,7 +153,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 /* 地図上スライダーオーバーレイ */
 .map-overlay{position:absolute;bottom:0;left:0;right:0;z-index:9999;
   background:linear-gradient(transparent,rgba(7,17,31,.92) 30%);
-  padding:10px 18px 14px;pointer-events:none;}
+  padding:10px 18px 14px;pointer-events:auto;touch-action:manipulation;}
 .map-overlay>*{pointer-events:auto;}
 .overlay-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .ov-age{font-size:1.7rem;font-family:var(--font-mono);color:var(--amber);line-height:1;}
@@ -165,8 +170,9 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 .ov-controls{display:flex;align-items:center;gap:8px;margin-top:6px;}
 .ov-btn{background:rgba(13,30,48,.85);border:1px solid var(--rail);color:var(--muted);
   font-family:var(--font-mono);font-size:.66rem;padding:5px 12px;border-radius:4px;
-  cursor:pointer;transition:all .13s;}
-.ov-btn:hover,.ov-btn.active{border-color:var(--amber);color:var(--amber);}
+  cursor:pointer;transition:all .13s;touch-action:manipulation;}
+.ov-btn.active{border-color:var(--amber);color:var(--amber);}
+@media (hover:hover){.ov-btn:hover{border-color:var(--amber);color:var(--amber);}}
 .speed-row{display:flex;align-items:center;gap:5px;font-size:.58rem;font-family:var(--font-mono);color:var(--muted);margin-left:auto;}
 .speed-row input[type="range"]{width:70px;height:3px;background:rgba(30,58,90,.8);}
 .speed-row input[type="range"]::-webkit-slider-thumb{width:11px;height:11px;}
@@ -222,8 +228,8 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button onclick="openHelp()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;white-space:nowrap;">❓<span class="hide-sp"> 使い方</span></button>
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
-  <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑<span class="hide-sp"> リセット</span></button>
-  <span class="ver">v2.68</span>
+  <button onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
+  <span class="ver">v2.70</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -266,10 +272,6 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 <div class="main-wrap">
   <!-- サイドパネル -->
   <div class="side-panel" id="sidePanel">
-
-    <div id="redrawTop" style="display:none">
-      <button class="btn-redraw" onclick="drawLife()" title="設定を変えたら、ここを押すと描き直すヨ">🔁 再表示</button>
-    </div>
 
     <div>
       <div class="sec-label">① 新幹線を選ぶ</div>
@@ -380,6 +382,10 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
     <div id="stationListSection" style="display:none">
       <div class="sec-label">▸ 駅の一らん</div>
       <div class="station-list" id="stationList"></div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:10px;border-top:1px solid var(--rail)">
+      <button class="btn-reset-bottom" onclick="resetAll()">🗑 ぜんぶリセット</button>
     </div>
 
   </div>
@@ -967,7 +973,7 @@ function selectRoute(route,btn){
   btn.classList.add('sel');btn.style.borderColor=route.color;btn.style.color=route.color;
   selectedRoute=route;reversed=false;
   buildTerminalSelects(route);
-  ['redrawTop','terminalSection','yearSection','warekiSection','topicSection','drawSection'].forEach(id=>{
+  ['terminalSection','yearSection','warekiSection','topicSection','drawSection'].forEach(id=>{
     document.getElementById(id).style.display='';
   });
   ['stationListSection','saveSection'].forEach(id=>{document.getElementById(id).style.display='none';});
@@ -1594,7 +1600,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.68',
+    version:'2.70',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1667,7 +1673,7 @@ function resetAll(){
   bubbleSide='top';
   const bsb=document.getElementById('bubbleSideBtn'); if(bsb)bsb.textContent='↕ 上下';
   // セクション・駅一覧・下部バーを非表示＆クリア（最初の状態に戻す）
-  ['redrawTop','terminalSection','yearSection','warekiSection','topicSection','drawSection','stationListSection','saveSection','hr2','mapOverlay'].forEach(id=>{
+  ['terminalSection','yearSection','warekiSection','topicSection','drawSection','stationListSection','saveSection','hr2','mapOverlay'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.style.display='none';
   });
