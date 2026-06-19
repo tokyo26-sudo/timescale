@@ -221,7 +221,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑<span class="hide-sp"> リセット</span></button>
-  <span class="ver">v2.66</span>
+  <span class="ver">v2.67</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -1437,10 +1437,11 @@ function onSlider(months){
   document.getElementById('ovSub').textContent=
     `${fmtYear(Math.round(near.year))} ／ ${Math.round(nd*10)/10}km ／ ${Math.round(ratio*100)}%`;
 
-  // マーカ描画
-  if(currentMarker)map.removeLayer(currentMarker);
+  // マーカ描画（再生中は作り直さず「動かすだけ」＝スマホでも軽い・タッチが固まらない）
   const col=selectedRoute?selectedRoute.color:'#F5A623';
   const size=32;
+  if(!currentMarker){
+  // 丸はここで「1回だけ」作る（clearMapでnullに戻るので描き直しごとに作り直される）
   const icon=L.divIcon({className:'',
     html:`<div class="age-marker-wrap" id="dragHandle">
       <div class="age-marker-circle" style="width:${size}px;height:${size}px;background:${col};font-size:13px;font-weight:bold;text-align:center;line-height:1.1">${valToAgeLabel(months)}</div>
@@ -1449,10 +1450,7 @@ function onSlider(months){
     iconSize:[size,size+18],iconAnchor:[size/2,size/2]});
   currentMarker=L.marker([pos.lat,pos.lon],{icon,zIndexOffset:1000,draggable:true}).addTo(map);
 
-  // 追尾モード：地図を丸の位置にすぐ寄せる（ズームは変えない）
-  if(followMode) map.panTo([pos.lat,pos.lon],{animate:false});
-
-  // ドラッグ中も路線上にスナップさせルヨ
+  // ドラッグ中も路線上にスナップさせルヨ（ハンドラは1回だけ付ける）
   currentMarker.on('drag',function(e){
     isDragging=true;
     const {lat,lng}=e.latlng;
@@ -1485,6 +1483,20 @@ function onSlider(months){
     isDragging=false;
     onSlider(parseInt(document.getElementById('ageSlider').value));
   });
+  } else {
+    // すでに丸がある＝位置と中身だけ更新（超軽い・リスナ増殖なし）
+    currentMarker.setLatLng([pos.lat,pos.lon]);
+    const el=currentMarker.getElement();
+    if(el){
+      const c=el.querySelector('.age-marker-circle');
+      const l=el.querySelector('.age-marker-label');
+      if(c) c.textContent=valToAgeLabel(months);
+      if(l) l.textContent=valToLabel(curYearReal);
+    }
+  }
+
+  // 追尾モード：地図を丸の位置にすぐ寄せる（ズームは変えない）
+  if(followMode) map.panTo([pos.lat,pos.lon],{animate:false});
 
   // トピック表示（常時表示OFFのとき、丸が近くを通ったら出す）
   if(!bubbleVisible){
@@ -1570,7 +1582,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.66',
+    version:'2.67',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
