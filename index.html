@@ -18,7 +18,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   --font-mono:'Share Tech Mono',monospace;--font-body:'Noto Sans JP',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--white);font-family:var(--font-body);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body{background:var(--bg);color:var(--white);font-family:var(--font-body);height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
 header{padding:9px 15px 7px;border-bottom:1px solid var(--rail);display:flex;align-items:center;gap:9px;flex-shrink:0;flex-wrap:wrap;}
 header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--amber);font-family:var(--font-mono);white-space:nowrap;}
 .ver{margin-left:auto;font-size:.56rem;font-family:var(--font-mono);color:var(--muted);opacity:.9;}
@@ -45,6 +45,12 @@ header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--ambe
 .modal-close{position:absolute;top:9px;right:13px;background:transparent;border:none;color:var(--muted);
   font-size:1.25rem;cursor:pointer;line-height:1;}
 .modal-close:hover{color:var(--white);}
+/* 画面表示を元に戻す 浮きボタン（すまほのみ表示） */
+#recoverBtn{position:fixed;top:46px;left:10px;z-index:10002;display:none;
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--amber);
+  background:#0D1E30E6;color:var(--amber);font-size:1.25rem;line-height:1;
+  cursor:pointer;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.55);}
+#recoverBtn:active{opacity:.7;}
 .main-wrap{display:flex;flex:1;overflow:hidden;}
 
 /* サイドパネル */
@@ -200,6 +206,8 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   header .subtitle-en{display:none;}
   header label,header button{font-size:.6rem!important;padding:3px 6px!important;}
   .ver{font-size:.5rem;}
+  .hide-sp{display:none;}
+  #recoverBtn{display:flex;}
 }
 </style>
 </head>
@@ -208,15 +216,18 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button onclick="toggleSidebar()" id="btnSidebar" title="メニューを隠す/表示" style="font-size:.8rem;padding:2px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;cursor:pointer;">◀</button>
   <h1>◉ タイムスケール路線図</h1>
   <span class="subtitle-en" style="font-size:.64rem;color:var(--muted)">TIMESCALE SHINKANSEN</span>
-  <button onclick="openHelp()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;white-space:nowrap;">❓ 使い方</button>
-  <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂 JSONデータ読込み<input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
-  <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗 URLで共有</button>
-  <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑 リセット</button>
-  <span class="ver">v2.64</span>
+  <button onclick="openHelp()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;white-space:nowrap;">❓<span class="hide-sp"> 使い方</span></button>
+  <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
+  <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
+  <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑<span class="hide-sp"> リセット</span></button>
+  <span class="ver">v2.65</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
 <div class="toast" id="toast"></div>
+
+<!-- 画面表示を元に戻す 浮きボタン（すまほのみ） -->
+<button id="recoverBtn" onclick="recoverView()" title="画面表示を元に戻す">↺</button>
 
 <!-- 使い方モーダル -->
 <div class="modal-back" id="helpModal" onclick="if(event.target===this)closeHelp()">
@@ -1557,7 +1568,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.64',
+    version:'2.65',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1762,6 +1773,22 @@ function showToast(msg,isErr){
 function openHelp(){const m=document.getElementById('helpModal');if(m)m.classList.add('show');}
 function closeHelp(){const m=document.getElementById('helpModal');if(m)m.classList.remove('show');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHelp();});
+
+// ===== 画面表示を元に戻す（すまほで切れた時の たすけ舟） =====
+function recoverView(){
+  try{ window.scrollTo(0,0); }catch(e){}
+  try{ document.documentElement.scrollTop=0; document.body.scrollTop=0; }catch(e){}
+  try{ map.invalidateSize(true); }catch(e){}
+  showToast('画面表示を元に戻したヨ');
+}
+// ↺ボタンの位置をヘッダの高さに合わせる（折り返しても被らない）
+function positionRecoverBtn(){
+  const h=document.querySelector('header'); const b=document.getElementById('recoverBtn');
+  if(h&&b) b.style.top=(h.offsetHeight+8)+'px';
+}
+window.addEventListener('resize',positionRecoverBtn);
+window.addEventListener('orientationchange',()=>setTimeout(positionRecoverBtn,200));
+positionRecoverBtn();
 
 // ===== 初期化 =====
 buildRouteList();
