@@ -45,12 +45,12 @@ header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--ambe
 .modal-close{position:absolute;top:9px;right:13px;background:transparent;border:none;color:var(--muted);
   font-size:1.25rem;cursor:pointer;line-height:1;}
 .modal-close:hover{color:var(--white);}
-/* 画面表示を元に戻す 浮きボタン（すまほのみ表示） */
-#recoverBtn{position:fixed;top:46px;left:10px;z-index:10002;display:none;
+/* メニュー開け閉め 浮きボタン（すまほのみ表示） */
+#menuFab{position:fixed;top:46px;left:10px;z-index:10002;display:none;
   width:38px;height:38px;border-radius:50%;border:1px solid var(--amber);
   background:#0D1E30E6;color:var(--amber);font-size:1.25rem;line-height:1;
   cursor:pointer;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.55);}
-#recoverBtn:active{opacity:.7;}
+#menuFab:active{opacity:.7;}
 .main-wrap{display:flex;flex:1;overflow:hidden;}
 
 /* サイドパネル */
@@ -207,7 +207,8 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   header label,header button{font-size:.6rem!important;padding:3px 6px!important;}
   .ver{font-size:.5rem;}
   .hide-sp{display:none;}
-  #recoverBtn{display:flex;}
+  #menuFab{display:flex;}
+  .side-panel{padding-top:52px;}
 }
 </style>
 </head>
@@ -220,14 +221,14 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑<span class="hide-sp"> リセット</span></button>
-  <span class="ver">v2.65</span>
+  <span class="ver">v2.66</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
 <div class="toast" id="toast"></div>
 
-<!-- 画面表示を元に戻す 浮きボタン（すまほのみ） -->
-<button id="recoverBtn" onclick="recoverView()" title="画面表示を元に戻す">↺</button>
+<!-- メニュー開け閉め 浮きボタン（すまほのみ） -->
+<button id="menuFab" onclick="toggleSidebar()" title="メニューを開く/閉じる">✕</button>
 
 <!-- 使い方モーダル -->
 <div class="modal-back" id="helpModal" onclick="if(event.target===this)closeHelp()">
@@ -1054,6 +1055,7 @@ function toggleSidebar(){
   const sp=document.getElementById('sidePanel');
   const collapsed=sp.classList.toggle('collapsed');
   document.getElementById('btnSidebar').textContent = collapsed ? '▶' : '◀';
+  const fab=document.getElementById('menuFab'); if(fab) fab.textContent = collapsed ? '☰' : '✕';
   // 地図のサイズを再計算（折りたたみ後の幅に合わせる）
   setTimeout(()=>{ try{ map.invalidateSize(); }catch(e){} }, 60);
 }
@@ -1568,7 +1570,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.65',
+    version:'2.66',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1774,21 +1776,14 @@ function openHelp(){const m=document.getElementById('helpModal');if(m)m.classLis
 function closeHelp(){const m=document.getElementById('helpModal');if(m)m.classList.remove('show');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeHelp();});
 
-// ===== 画面表示を元に戻す（すまほで切れた時の たすけ舟） =====
-function recoverView(){
-  try{ window.scrollTo(0,0); }catch(e){}
-  try{ document.documentElement.scrollTop=0; document.body.scrollTop=0; }catch(e){}
-  try{ map.invalidateSize(true); }catch(e){}
-  showToast('画面表示を元に戻したヨ');
-}
-// ↺ボタンの位置をヘッダの高さに合わせる（折り返しても被らない）
-function positionRecoverBtn(){
-  const h=document.querySelector('header'); const b=document.getElementById('recoverBtn');
+// ===== メニュー浮きボタンの位置をヘッダの高さに合わせる（折り返しても被らない） =====
+function positionMenuFab(){
+  const h=document.querySelector('header'); const b=document.getElementById('menuFab');
   if(h&&b) b.style.top=(h.offsetHeight+8)+'px';
 }
-window.addEventListener('resize',positionRecoverBtn);
-window.addEventListener('orientationchange',()=>setTimeout(positionRecoverBtn,200));
-positionRecoverBtn();
+window.addEventListener('resize',positionMenuFab);
+window.addEventListener('orientationchange',()=>setTimeout(positionMenuFab,200));
+positionMenuFab();
 
 // ===== 初期化 =====
 buildRouteList();
