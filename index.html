@@ -209,6 +209,8 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   .hide-sp{display:none;}
   #menuFab{display:flex;}
   .side-panel{padding-top:52px;}
+  .ov-controls{flex-wrap:wrap;row-gap:6px;}
+  .speed-row{margin-left:8px;}
 }
 </style>
 </head>
@@ -221,7 +223,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="resetAll()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #e55;color:#e55;border-radius:4px;cursor:pointer;white-space:nowrap;">🗑<span class="hide-sp"> リセット</span></button>
-  <span class="ver">v2.67</span>
+  <span class="ver">v2.68</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -904,6 +906,14 @@ function getPosAtRatio(ratio){
 // ===== 地図 =====
 const map=L.map('map',{zoomControl:false}).setView([36.5,137.5],6);
 L.control.zoom({position:'topright'}).addTo(map);
+// 下バー(再生コントロール)のタッチ/クリック/スクロールを地図に伝えない＝スマホで操作不能になる対策
+(function(){
+  const ov=document.getElementById('mapOverlay');
+  if(ov && window.L && L.DomEvent){
+    L.DomEvent.disableClickPropagation(ov);
+    L.DomEvent.disableScrollPropagation(ov);
+  }
+})();
 // トピック吹き出し用pane
 map.createPane('topicNormal'); map.getPane('topicNormal').style.zIndex=620;
 map.createPane('topicFront');  map.getPane('topicFront').style.zIndex=650;
@@ -1548,6 +1558,7 @@ function highlightList(name){
 function toggleAnim(){isPlaying?stopAnim():startAnim();}
 function startAnim(){
   isPlaying=true;
+  try{ if(currentMarker&&currentMarker.dragging) currentMarker.dragging.disable(); }catch(e){}
   document.getElementById('btnPlay').textContent='⏸';
   document.getElementById('btnPlay').classList.add('active');
   const sl=document.getElementById('ageSlider');
@@ -1573,6 +1584,7 @@ function startAnim(){
 }
 function stopAnim(){
   isPlaying=false;clearTimeout(animTimer);
+  try{ if(currentMarker&&currentMarker.dragging) currentMarker.dragging.enable(); }catch(e){}
   document.getElementById('btnPlay').textContent='▶ 再生';
   document.getElementById('btnPlay').classList.remove('active');
 }
@@ -1582,7 +1594,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.67',
+    version:'2.68',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
