@@ -235,7 +235,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.71</span>
+  <span class="ver">v2.72</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -249,29 +249,35 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <div class="modal-box">
     <button class="modal-close" onclick="closeHelp()" title="とじる">×</button>
     <h2>◉ 使い方</h2>
-    <p>人生や歴史の出来事を、実在の路線の上に「時間＝距離」で並べる地図ツールだヨ。</p>
+    <p>これは、人生や歴史の出来事を、実在の路線の上に「時間＝距離」で並べる地図ツールだヨ。</p>
 
-    <h3>▶ 手じゅん</h3>
+    <h3>★ まずは「サンプル」で見てみよう</h3>
+    <p>左メニューいちばん上の「🎴 サンプル」を押すと、ポチっとするだけで例が表示されるヨ。徳川15代将軍／家康の生涯／キリストの生涯／ビッグバン→地球滅亡 の4つ。どんなものか、まずはこれでイメージをつかんでネ。</p>
+
+    <h3>▶ 自分で作る手じゅん</h3>
     <ol>
       <li>路線を選ぶ（新幹線・都市鉄道・海外）</li>
       <li>始発駅と終着駅をえらぶ</li>
       <li>開始の年・終了の年を入れる</li>
       <li>スケール（人／地球）と年の表記をえらぶ</li>
-      <li>出来事（トピック）を年と内ようで追加</li>
-      <li>「▶ タイムスケールを表示」をおす！</li>
+      <li>出来事（トピック）を「年」と「内よう」で追加する</li>
+      <li>「▶ タイムスケールを表示」を押す！</li>
     </ol>
+
+    <h3>🔁 設定を変えたら「再表示」</h3>
+    <p>路線・年・トピックなどを変えたら、上のバーの「🔁 再表示」を押すと描き直すヨ。（押さないと前のままだから注意）</p>
 
     <h3>✦ できること</h3>
     <ul>
-      <li>💬 出来事を路線の上に常時ひょうじ</li>
+      <li>💬 出来事を路線の上にずっと表示</li>
       <li>↕ 上下／→ 右　吹き出しの向きを切りかえ</li>
       <li>▶ 再生・🎯 追尾で時間をたどる</li>
-      <li>🔗 URLで共有（リンクをコピー）</li>
+      <li>🔗 URLで共有（リンクをコピーして送れる）</li>
       <li>📂 JSON・CSVで保存／よみこみ</li>
-      <li>🗑 リセットで最初から</li>
+      <li>🗑 リセット（左メニューいちばん下）で最初から</li>
     </ul>
 
-    <p class="mhint">ヒント：年は「138億」「紀元前300」みたいに入れてもOKだヨ。地球スケールにすると、うんと昔の出来事も並べられるネ！</p>
+    <p class="mhint">💡 ヒント：年は「138億」「紀元前300」のように入れてもOK。地球スケールにすると、うんと昔からうんと先の未来まで並べられるヨ。</p>
   </div>
 </div>
 
@@ -1618,7 +1624,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.71',
+    version:'2.72',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1838,7 +1844,7 @@ positionMenuFab();
 const SAMPLES = [
   {name:'徳川15代将軍', data:{version:'2.62',routeId:'tokaido',startSel:'0',endSel:'16',reversed:false,birthYear:1603,deathYear:1867.9166666666667,birthYearRaw:1603,birthMonthRaw:1,deathYearRaw:1867,deathMonthRaw:12,scaleMode:'human',dateMode:'seireki',bigYearJp:false,topics:[{year:1603,month:0,text:'家康'},{year:1605,month:0,text:'秀忠'},{year:1623,month:0,text:'家光'},{year:1651,month:0,text:'家綱'},{year:1680,month:0,text:'綱吉'},{year:1709,month:0,text:'家宣'},{year:1713,month:0,text:'家継'},{year:1716,month:0,text:'吉宗'},{year:1745,month:0,text:'家重'},{year:1760,month:0,text:'家治'},{year:1787,month:0,text:'家斉'},{year:1837,month:0,text:'家慶'},{year:1853,month:0,text:'家定'},{year:1858,month:0,text:'家茂'},{year:1867,month:0,text:'慶喜'}],currentMonth:0}},
   {name:'家康の生涯', data:{version:'2.15',routeId:'tokaido',startSel:'0',endSel:'16',reversed:false,birthYear:1543.9166666666667,deathYear:1616.4166666666667,birthYearRaw:1543,birthMonthRaw:12,deathYearRaw:1616,deathMonthRaw:6,scaleMode:'human',dateMode:'seireki',topics:[{year:1557,text:'元服'},{year:1558,text:'初陣'},{year:1561,text:'岡崎に帰る'},{year:1563,text:'家康に改名'},{year:1572,text:'三方ヶ原の戦い'},{year:1584,text:'小牧・長久手の戦い'},{year:1590,text:'江戸入府'},{year:1600,text:'関ヶ原の戦い'},{year:1603,text:'征夷大将軍'},{year:1614,text:'大坂冬の陣'},{year:1615,text:'大坂夏の陣'}],currentMonth:0}},
-  {name:'キリストの生涯', data:{version:'2.71',routeId:'tokaido_sanyo',startSel:'0',endSel:'34',reversed:false,birthYear:-2.0833333333333335,deathYear:31.25,birthYearRaw:-3,birthMonthRaw:12,deathYearRaw:31,deathMonthRaw:4,scaleMode:'human',dateMode:'seireki',bigYearJp:false,topics:[{year:-3,month:12,text:'馬小屋で生まれる'},{year:26,month:9,text:'洗礼を受ける'},{year:27,month:1,text:'水をワインに変える奇跡'},{year:31,month:4,text:'最後の晩餐・十字架にかけられる・復活'}],currentMonth:0}},
+  {name:'キリストの生涯', data:{version:'2.72',routeId:'tokaido_sanyo',startSel:'0',endSel:'34',reversed:false,birthYear:-2.0833333333333335,deathYear:31.25,birthYearRaw:-3,birthMonthRaw:12,deathYearRaw:31,deathMonthRaw:4,scaleMode:'human',dateMode:'seireki',bigYearJp:false,topics:[{year:-3,month:12,text:'馬小屋で生まれる'},{year:26,month:9,text:'洗礼を受ける'},{year:27,month:1,text:'水をワインに変える奇跡'},{year:31,month:4,text:'最後の晩餐・十字架にかけられる・復活'}],currentMonth:0}},
   {name:'ビッグバン→地球滅亡', data:{version:'2.54',routeId:'tokaido_sanyo',startSel:'0',endSel:'34',reversed:false,birthYear:-13820000000,deathYear:5000000000,birthYearRaw:-13820000000,birthMonthRaw:12,deathYearRaw:5000000000,deathMonthRaw:6,scaleMode:'earth',dateMode:'seireki',bigYearJp:true,topics:[{year:-13820000000,text:'ビッグバン'},{year:-13800000000,text:'銀河の誕生'},{year:-4600000000,text:'太陽系の誕生'},{year:-3800000000,text:'生命誕生（地球）'},{year:-200000000,text:'恐竜が栄える'},{year:-66000000,text:'恐竜滅ぶ'},{year:-300000,text:'ホモ・サピエンス誕生'},{year:-2600,month:0,text:'ピラミッド竣工'},{year:-27,text:'ローマ帝国成立'},{year:-4,text:'キリスト誕生'},{year:1185,month:0,text:'鎌倉幕府成立（日本）'},{year:1999,month:0,text:'ミッチー・サッチー戦争勃発（日本）'},{year:5000000000,text:'太陽が赤色巨星になって地球滅亡'}],currentMonth:18820000000}},
 ];
 function loadSample(i){
