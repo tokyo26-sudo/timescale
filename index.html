@@ -235,7 +235,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.73</span>
+  <span class="ver">v2.74</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -1021,18 +1021,19 @@ function buildTerminalSelects(route){
   document.getElementById('endSel').value=route.stations.length-1;
 }
 
+function setTerminalDots(){
+  const ds=document.getElementById('dotStart'),de=document.getElementById('dotEnd');
+  if(!ds||!de)return;
+  const red='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--red);box-shadow:0 0 5px var(--red)';
+  const green='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--green);box-shadow:0 0 5px var(--green)';
+  ds.style.cssText = reversed ? red : green;
+  de.style.cssText = reversed ? green : red;
+}
 function swapTerminals(){
   const ss=document.getElementById('startSel'),es=document.getElementById('endSel');
   [ss.value,es.value]=[es.value,ss.value];
   reversed=!reversed;
-  const ds=document.getElementById('dotStart'),de=document.getElementById('dotEnd');
-  if(reversed){
-    ds.style.cssText='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--red);box-shadow:0 0 5px var(--red)';
-    de.style.cssText='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--green);box-shadow:0 0 5px var(--green)';
-  }else{
-    ds.style.cssText='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--green);box-shadow:0 0 5px var(--green)';
-    de.style.cssText='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--red);box-shadow:0 0 5px var(--red)';
-  }
+  setTerminalDots();
 }
 
 // ===== 月セレクト初期化 =====
@@ -1373,7 +1374,7 @@ function drawLife(){
     const s=seg[i];
     let cum;
     if(hasKm){
-      cum = s.km - baseKm;
+      cum = Math.abs(s.km - baseKm);
     } else {
       cum = i===0 ? 0 : stations[i-1].cumDist + dist(seg[i-1],s);
     }
@@ -1625,7 +1626,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.73',
+    version:'2.74',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1733,7 +1734,9 @@ function applyData(data,doneMsg){
       const scaleBtn=document.getElementById(data.scaleMode==='earth'?'scaleEarth':'scaleHuman');
       if(scaleBtn)setScale(data.scaleMode,scaleBtn);
     }
-    if(data.reversed!==reversed)swapTerminals();
+    // reversedは保存値を直接セット（startSel/endSelは既に保存値なのでスワップしない＝二重反転バグ防止）
+    reversed = !!data.reversed;
+    setTerminalDots();
     topics=data.topics||[];
     // 元号ボタン（人スケール）復元：warekiBtns内だけを対象にする
     dateMode = (scaleMode==='earth') ? 'seireki' : (data.dateMode||'seireki');
