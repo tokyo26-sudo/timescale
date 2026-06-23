@@ -235,7 +235,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.76</span>
+  <span class="ver">v2.77</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -278,6 +278,12 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
     </ul>
 
     <p class="mhint">💡 ヒント：年は「138億」「紀元前300」のように入れてもOK。地球スケールにすると、うんと昔からうんと先の未来まで並べられるヨ。</p>
+
+    <h3>⏱️ 時間と距離のしくみ</h3>
+    <p>このアプリは、路線の長さ（営業キロ）を「人生や歴史の長さ（時間）」に見立てて眺めるツールです。始発駅が「始まりの年」、終着駅が「終わりの年」。あいだの時間は、距離に対して均等（比例）に割りふっています。つまり「同じ距離だけ進めば、同じだけ時間が進む」というしくみで、出来事はその年にあたる位置（始まりから何キロ地点か）に置かれます。距離は国内路線では営業キロ、海外路線では駅と駅の直線距離を使っています。</p>
+
+    <h3>⚠️ 正確さについて</h3>
+    <p>年代も距離も、この「時間＝距離」という見せ方を活かすために あえて単純化しています。暦の種類（グレゴリオ暦・ユリウス暦・太陽暦・太陰暦など）の違い・換算・うるう年はひとつの目盛りにそろえ、地図上の位置もおおよその目安です。正確な日付や距離を示すものではないので、そこは大らかに楽しんでくださいネ。</p>
   </div>
 </div>
 
@@ -1627,7 +1633,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.76',
+    version:'2.77',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
