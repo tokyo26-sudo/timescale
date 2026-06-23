@@ -235,7 +235,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.75</span>
+  <span class="ver">v2.76</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -1442,8 +1442,9 @@ function drawLife(){
 function clearMap(){
   if(routeLine){map.removeLayer(routeLine);routeLine=null;}
   stMarkers.forEach(m=>map.removeLayer(m));stMarkers=[];
-  if(currentMarker){map.removeLayer(currentMarker);currentMarker=null;}
+  if(currentMarker){try{currentMarker.closePopup();currentMarker.unbindPopup();}catch(e){} map.removeLayer(currentMarker);currentMarker=null;}
   topicMarkers.forEach(e=>{try{map.removeLayer(e.marker||e);}catch(e){}});topicMarkers=[];
+  const _pc=document.getElementById('passingComment'); if(_pc){_pc.style.display='none';_pc.innerHTML='';}
 }
 
 // ===== スライダー =====
@@ -1626,7 +1627,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.75',
+    version:'2.76',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1737,6 +1738,9 @@ function applyData(data,doneMsg){
     // reversedは保存値を直接セット（startSel/endSelは既に保存値なのでスワップしない＝二重反転バグ防止）
     reversed = !!data.reversed;
     setTerminalDots();
+    // 読み込み時は必ず「常時表示ON」に戻す（前のOFF状態を引き継がない＝残りカス＆遠い未来イベント非表示を防ぐ）
+    bubbleVisible = true;
+    {const _bt=document.getElementById('bubbleToggleBtn'); if(_bt){_bt.textContent='💬 常時表示ON'; _bt.style.opacity='1';}}
     topics=data.topics||[];
     // 元号ボタン（人スケール）復元：warekiBtns内だけを対象にする
     dateMode = (scaleMode==='earth') ? 'seireki' : (data.dateMode||'seireki');
