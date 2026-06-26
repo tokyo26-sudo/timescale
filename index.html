@@ -45,6 +45,13 @@ header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--ambe
 .modal-close{position:absolute;top:9px;right:13px;background:transparent;border:none;color:var(--muted);
   font-size:1.25rem;cursor:pointer;line-height:1;}
 .modal-close:hover{color:var(--white);}
+/* 埋め込みHTML モーダル内のパーツ */
+.emb-row{display:flex;gap:14px;margin:12px 0 4px;flex-wrap:wrap;}
+.emb-row label{font-size:.7rem;color:var(--cyan);display:flex;flex-direction:column;gap:4px;}
+.emb-row input{width:120px;background:#07111F;border:1px solid var(--rail);color:var(--white);border-radius:5px;padding:6px 8px;font-family:var(--font-mono);font-size:.78rem;}
+.emb-code{width:100%;margin-top:8px;background:#07111F;border:1px solid var(--rail);color:#9FE7C8;border-radius:6px;padding:8px 10px;font-family:var(--font-mono);font-size:.66rem;line-height:1.5;resize:vertical;box-sizing:border-box;}
+.emb-copy{margin-top:8px;background:transparent;border:1px solid var(--amber);color:var(--amber);border-radius:5px;padding:6px 16px;font-size:.72rem;cursor:pointer;font-family:inherit;}
+.emb-copy:hover{background:var(--amber);color:#07111F;}
 /* メニュー開け閉め 浮きボタン（すまほのみ表示） */
 #menuFab{position:fixed;top:46px;left:10px;z-index:10002;display:none;
   width:38px;height:38px;border-radius:50%;border:1px solid var(--amber);
@@ -246,8 +253,9 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <label class="edit-only" style="cursor:pointer;font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--rail);color:var(--muted);border-radius:4px;white-space:nowrap;">📂<span class="hide-sp"> JSONデータ読込み</span><input type="file" accept=".json" style="display:none" onchange="loadJSON(event)"/></label>
   <button class="edit-only" onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button class="edit-only" onclick="shareViewerURL()" title="見る人が編集できない・読むだけのURLを作るヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #3aa657;color:#3aa657;border-radius:4px;cursor:pointer;white-space:nowrap;">👁<span class="hide-sp"> 読取専用URLで共有</span></button>
+  <button class="edit-only" onclick="openEmbed()" title="ホームページに貼る埋め込みHTMLを作るヨ（読むだけ）" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #b072d6;color:#b072d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🧩<span class="hide-sp"> 埋め込みHTML</span></button>
   <button class="edit-only" onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.87</span>
+  <span class="ver">v2.88</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -285,6 +293,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       <li>↕ 上下／→ 右　吹き出しの向きを切りかえ</li>
       <li>▶ 再生・🎯 追尾で時間をたどる</li>
       <li>🔗 URLで共有（リンクをコピーして送れる）</li>
+      <li>🧩 埋め込みHTML（ホームページに地図を貼れる・読むだけ）</li>
       <li>📂 JSON・CSVで保存／よみこみ</li>
       <li>🗑 リセット（左メニューいちばん下）で最初から</li>
     </ul>
@@ -298,6 +307,23 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
     <p>年代も距離も、この「時間＝距離」という見せ方を活かすために あえて単純化しています。暦の種類（グレゴリオ暦・ユリウス暦・太陽暦・太陰暦など）の違い・換算・うるう年はひとつの目盛りにそろえ、地図上の位置もおおよその目安です。正確な日付や距離を示すものではないので、そこは大らかに楽しんでくださいネ。</p>
   </div>
 </div>
+
+<!-- 埋め込みHTML モーダル -->
+<div class="modal-back" id="embedModal" onclick="if(event.target===this)closeEmbed()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeEmbed()" title="とじる">×</button>
+    <h2>🧩 埋め込みHTML</h2>
+    <p>いま表示している路線図を、ブログやホームページに貼るためのHTMLだヨ。見る人は<b>読むだけ（編集できない）</b>。はば・たかさを決めて「📋 コピー」して、サイトに貼りつけてネ。</p>
+    <div class="emb-row">
+      <label>はば(px)<input type="number" id="embW" value="700" min="200" max="2000" oninput="genEmbedCode()"></label>
+      <label>たかさ(px)<input type="number" id="embH" value="500" min="150" max="2000" oninput="genEmbedCode()"></label>
+    </div>
+    <textarea id="embedCode" class="emb-code" readonly rows="5" onclick="this.select()"></textarea>
+    <button class="emb-copy" onclick="copyEmbedCode()">📋 コピー</button>
+    <p class="mhint" id="embedHint">💡 開くと毎回、路線ぜんぶが画面にちょうど収まるように自動でズームするヨ。窓のはば・たかさを変えると寄りかたも変わるダカラ、好みで調整してネ。地図が出ないとき用に「開く」リンクも一緒に入ってるヨ。</p>
+  </div>
+</div>
+
 
 <div class="main-wrap">
   <!-- サイドパネル -->
@@ -1896,7 +1922,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.87',
+    version:'2.88',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -2091,13 +2117,17 @@ function shareURL(){
 // ===== 読取専用URLで共有（編集できない・見るだけのURLを作る）=====
 // 共有データに viewer:true を埋め込んで圧縮する。?view などのクエリは使わないので、
 // URLの一部を消してフルモードに戻ることはできない（圧縮の中にフラグがあるため）。
+// 読取専用URL（viewer:true 入り圧縮ハッシュ）の文字列を作って返す。共有・埋め込みで共用
+function makeViewerURL(){
+  const data=buildShareData();
+  data.viewer=true;
+  const enc=LZString.compressToEncodedURIComponent(JSON.stringify(data));
+  return location.origin+location.pathname+'#d='+enc;
+}
 function shareViewerURL(){
   if(!selectedRoute){setStatus('まず路線をえらんでネ！それから共有ダヨ',true);return;}
   try{
-    const data=buildShareData();
-    data.viewer=true;
-    const enc=LZString.compressToEncodedURIComponent(JSON.stringify(data));
-    const url=location.origin+location.pathname+'#d='+enc;
+    const url=makeViewerURL();
     const warn=url.length>2000?'（※'+url.length+'文字。長いから一部サービスで切れるかも。心配ならJSON保存もどうぞ）':'';
     const ok=()=>setStatus('👁 読取専用URLをコピーしたヨ！'+warn+' 見る人は編集できないヨ',false);
     if(navigator.clipboard&&navigator.clipboard.writeText){
@@ -2107,6 +2137,42 @@ function shareViewerURL(){
     }
   }catch(err){
     setStatus('読取専用URLづくりに失敗したヨ：'+err.message,true);
+  }
+}
+
+// ===== 埋め込みHTML（読取専用URLを iframe でくるんで書き出す）=====
+let _embedURL='';
+function openEmbed(){
+  if(!selectedRoute || !stations.length){ setStatus('まず路線図を表示してから埋め込めるヨ！',true); return; }
+  try{ _embedURL=makeViewerURL(); }
+  catch(err){ setStatus('埋め込みURLづくりに失敗したヨ：'+err.message,true); return; }
+  genEmbedCode();
+  document.getElementById('embedModal').classList.add('show');
+}
+function closeEmbed(){ document.getElementById('embedModal').classList.remove('show'); }
+function genEmbedCode(){
+  let w=parseInt(document.getElementById('embW').value,10);
+  let h=parseInt(document.getElementById('embH').value,10);
+  if(!(w>0)) w=700; if(!(h>0)) h=500;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const u=esc(_embedURL);
+  const code=
+'<iframe src="'+u+'" width="'+w+'" height="'+h+'" style="border:1px solid #ccc;max-width:100%;" loading="lazy" title="タイムスケール路線図"></iframe>\n'+
+'<p><a href="'+u+'" target="_blank" rel="noopener">タイムスケール路線図を開く</a></p>';
+  document.getElementById('embedCode').value=code;
+  const hint=document.getElementById('embedHint');
+  if(hint){
+    const longWarn=_embedURL.length>2000?'<br>⚠️ URLが'+_embedURL.length+'文字と長めダカラ、一部の場所で切れることがあるヨ。心配ならトピックを減らすか、JSON保存も使ってネ。':'';
+    hint.innerHTML='💡 開くと毎回、路線ぜんぶが画面にちょうど収まるように自動でズームするヨ。窓のはば・たかさを変えると寄りかたも変わるダカラ、好みで調整してネ。地図が出ないとき用に「開く」リンクも一緒に入ってるヨ。'+longWarn;
+  }
+}
+function copyEmbedCode(){
+  const ta=document.getElementById('embedCode');
+  const ok=()=>setStatus('📋 埋め込みHTMLをコピーしたヨ！サイトに貼りつけてネ',false);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value).then(ok).catch(()=>{ta.select();try{document.execCommand('copy');}catch(e){}ok();});
+  }else{
+    ta.select(); try{document.execCommand('copy');}catch(e){} ok();
   }
 }
 
