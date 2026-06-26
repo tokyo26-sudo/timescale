@@ -211,6 +211,12 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 .tile-menu-list button{display:block;width:100%;padding:7px 12px;background:none;border:none;color:#EEF2F7;font-size:.75rem;text-align:left;cursor:pointer;white-space:nowrap;}
 .tile-menu-list button:hover{background:#1E3A5F;color:#F5A623;}
 .tile-menu-list button.active{color:#F5A623;}
+/* 線形／対数 フローティングトグル（重さ・長さモードで路線図を出した後だけ出る） */
+.logscale-float{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:9999;display:none;align-items:stretch;background:#0D1E30DD;border:1px solid #555;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.logscale-float button{background:none;border:none;color:#9FB3C8;font-size:.72rem;padding:5px 10px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.logscale-float button.active{background:#1E3A5F;color:#F5A623;}
+.logscale-float button:hover{color:#F5A623;}
+.logscale-float .sep{width:1px;background:#555;}
 
 .leaflet-popup-content{font-family:'Share Tech Mono',monospace;font-size:.7rem;margin:7px 9px;}
 .leaflet-tile{} .tile-dark{filter:brightness(.62) saturate(.45) hue-rotate(200deg);}
@@ -241,7 +247,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button class="edit-only" onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button class="edit-only" onclick="shareViewerURL()" title="見る人が編集できない・読むだけのURLを作るヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #3aa657;color:#3aa657;border-radius:4px;cursor:pointer;white-space:nowrap;">👁<span class="hide-sp"> 読取専用URLで共有</span></button>
   <button class="edit-only" onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.86</span>
+  <span class="ver">v2.87</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -451,6 +457,13 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       </div>
     </div>
     <div id="map"></div>
+
+    <!-- 線形／対数 トグル（重さ・長さ＋路線図表示後だけ表示） -->
+    <div class="logscale-float" id="logScaleFloat">
+      <button id="logBtnLinear" class="active" onclick="setLogScale(false)" title="ふつうの目もり（時間＝きょり）">📈 線形</button>
+      <div class="sep"></div>
+      <button id="logBtnLog" onclick="setLogScale(true)" title="ケタごとに同じ間かく。小さいものも見やすい（正の数だけ）">📉 対数</button>
+    </div>
 
     <!-- 地図上オーバーレイ -->
     <div id="passingComment" style="display:none;position:absolute;top:60px;left:50%;transform:translateX(-50%);
@@ -871,6 +884,7 @@ let animTimer=null, isPlaying=false;
 let dateMode='seireki', topics=[], reversed=false, scaleMode='human';
 // ===== 種類（量）モード：'time'＝今までの時間。temp/mass/length＝新モード（線形・地球スケール相当） =====
 let kind='time';      // 'time' | 'temp' | 'mass' | 'length'
+let logScale=false;   // 対数スケール（重さ・長さモードのみ／既定は線形）。時間・温度では常にfalse
 const NT_STEPS=1000;  // 非時間モードのスライダ分割数（固定）。極小〜巨大どんなスケールでもなめらか再生
 let dispUnit='';      // 表示単位（温度=℃/K、重さ=g/kg/t、長さ=mm/cm/m/km）。timeでは未使用
 const QTY={
@@ -922,6 +936,7 @@ function fmtNumMaybe(v){
 let prevTimeScale='human';   // 非時間に出入りする間、時間モードのスケールを覚えておく
 // 種類セレクタ
 function setKind(k, btn){
+  logScale=false;   // 種類を切りかえたら対数→線形にもどす（重さ・長さ以外は常に線形）
   if(isTime() && k!=='time') prevTimeScale=scaleMode;   // 時間→非時間：今のスケールを保存
   kind=k;
   document.querySelectorAll('#kindBtns .wr-btn').forEach(b=>b.classList.remove('active'));
@@ -958,6 +973,7 @@ function setKind(k, btn){
     setQtyPlaceholders(ph);
   }
   const su=document.getElementById('ovAgeUnit'); if(su) su.textContent = isTime()?'歳':'';
+  updateLogToggleUI();
 }
 // ④種類ボタンの「ユーザークリック」専用ラッパー。案1＝始まり/終わり/トピック/表示中の路線図をクリア（路線選択は残す）／案B＝消す前に確認
 // ※JSON・共有リンク・リセットは setKind を直接呼ぶのでクリアの巻き添えにしない
@@ -988,6 +1004,7 @@ function clearQtyData(){
   const setTxt=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
   setTxt('ovAge','0'); setTxt('ovYear','──'); setTxt('ovStation','──'); setTxt('ovSub','');
   const pb=document.getElementById('ovProgBar'); if(pb) pb.style.width='0%';
+  updateLogToggleUI();
 }
 function setQtyPlaceholders(ph){
   const by=document.getElementById('birthYear'), dy=document.getElementById('deathYear'), ty=document.getElementById('topicYear');
@@ -1191,6 +1208,7 @@ function selectRoute(route,btn){
   document.getElementById('hr2').style.display='none';
   document.getElementById('mapOverlay').style.display='none';
   clearMap();
+  updateLogToggleUI();
   const previewPoly=ROUTE_POLYLINES[route.id]||route.stations.map(s=>[s.lat,s.lon]);
   routeLine=L.polyline(previewPoly,{color:route.color,weight:3,opacity:.7}).addTo(map);
   map.fitBounds(routeLine.getBounds(),{padding:[40,40]});
@@ -1306,15 +1324,68 @@ function getEndVal(){
   const m = parseInt(document.getElementById('deathMonth').value)||1;
   return y + (m-1)/12;
 }
+// ===== 非時間モード：値↔わりあい(0..1) の変換（ここだけが線形／対数で分岐する） =====
+// 線形：start + r*(end-start)／対数：10^(L0 + r*(L1-L0))   ※L0=log10(start), L1=log10(end)
+// 時間モードでは logScale は常に false なので、これらは従来どおりの線形を返す
+function ntRatioToVal(r){
+  const a=getStartVal(), b=getEndVal();
+  if(logScale && a>0 && b>0){
+    const L0=Math.log10(a), L1=Math.log10(b);
+    return Math.pow(10, L0 + r*(L1-L0));
+  }
+  return a + r*(b-a);
+}
+function ntValToRatio(v){
+  const a=getStartVal(), b=getEndVal();
+  if(logScale && a>0 && b>0){
+    const L0=Math.log10(a), L1=Math.log10(b), d=L1-L0;
+    return d ? (Math.log10(v)-L0)/d : 0;
+  }
+  const span=b-a;
+  return span ? (v-a)/span : 0;
+}
+// 線形／対数トグルの「見た目」を今の状態に合わせる（表示・非表示＆active）
+function updateLogToggleUI(){
+  const fl=document.getElementById('logScaleFloat'); if(!fl) return;
+  const ov=document.getElementById('mapOverlay');
+  const mapShown = ov && ov.style.display!=='none';
+  const show = (kind==='mass'||kind==='length') && mapShown;
+  fl.style.display = show ? 'flex' : 'none';
+  const bL=document.getElementById('logBtnLinear'), bG=document.getElementById('logBtnLog');
+  if(bL) bL.classList.toggle('active', !logScale);
+  if(bG) bG.classList.toggle('active', logScale);
+}
+// 線形⇔対数の切替（地図の線は引きなおさない＝駅の値・一覧・吹き出し・丸だけ更新）
+function setLogScale(on){
+  if(on===logScale){ updateLogToggleUI(); return; }
+  if(on && (getStartVal()<=0 || getEndVal()<=0)){
+    setStatus('対数は正の数だけダカラ！始まりと終わりを0より大きくしてネ',true);
+    updateLogToggleUI(); return;   // 表示は切りかえない
+  }
+  logScale=on;
+  if(stations.length && totalDist){
+    stations.forEach(s=>{ s.year = ntRatioToVal(s.cumDist/totalDist); });
+    stations.forEach((s,i)=>{
+      const m=stMarkers[i]; if(!m) return;
+      const yr=Math.round(s.year);
+      try{ m.setTooltipContent(`${s.name}（${isTime()?fmtYear(yr):fmtQty(s.year)}）`); }catch(e){}
+    });
+    buildStationList(getStartVal(),getEndVal());
+    if(bubbleVisible) redrawTopicMarkers();
+    onSlider(parseFloat(document.getElementById('ageSlider').value)||0);
+  }
+  updateLogToggleUI();
+  setStatus(on?'対数スケールにしたヨ！':'線形スケールにもどしたヨ！',false);
+}
 // 西れき年（実数）→スライダ値（人=月数整数、地球=年数整数）
 function yearToSteps(yearReal, birthYearReal){
-  if(!isTime()){ const span=getEndVal()-getStartVal(); return span? Math.round((yearReal-birthYearReal)/span*NT_STEPS) : 0; }
+  if(!isTime()){ return Math.round(ntValToRatio(yearReal)*NT_STEPS); }
   const diff = yearReal - birthYearReal;
   return scaleMode==='human' ? Math.round(diff*12) : Math.round(diff);
 }
 // スライダ値→西れき年（実数）
 function stepsToYear(steps, birthYearReal){
-  if(!isTime()){ const span=getEndVal()-getStartVal(); return birthYearReal + (steps/NT_STEPS)*span; }
+  if(!isTime()){ return ntRatioToVal(steps/NT_STEPS); }
   return scaleMode==='human' ? birthYearReal + steps/12 : birthYearReal + steps;
 }
 // 総月数（人）or 総年数（地球）を年に換算
@@ -1337,7 +1408,7 @@ function valToLabel(yearReal){
 // 値→年れいラベル（スライダ上の表示）
 function valToAgeLabel(steps){
   // stepsは「スライダの値」= 経過月数（人）or 経過年数（地球）。非時間は 0..NT_STEPS の割合
-  if(!isTime()){ const span=getEndVal()-getStartVal(); return qtyNum(getStartVal()+(steps/NT_STEPS)*span); }
+  if(!isTime()){ return qtyNum(ntRatioToVal(steps/NT_STEPS)); }
   if(scaleMode==='earth') return fmtBigNum(steps);
   const y=Math.floor(steps/12);
   return `${y}`;
@@ -1443,8 +1514,9 @@ function redrawTopicMarkers(){
   const visible=[];
   topics.forEach((t,ti)=>{
     const ey=topicYearVal(t);   // 年＋月（月なしなら年そのまま）
+    if(logScale && ey<=0) return;   // 案A：対数では0以下のトピックはその項目だけ出さない
     if(ey<birthYear||ey>deathYear)return;
-    const ratio=(ey-birthYear)/(deathYear-birthYear);
+    const ratio= isTime() ? (ey-birthYear)/(deathYear-birthYear) : ntValToRatio(ey);
     const pos=getPosAtRatio(ratio);
     if(!pos)return;
     visible.push({t,ti,pos,ratio,pt:map.latLngToContainerPoint([pos.lat,pos.lon])});
@@ -1573,9 +1645,9 @@ function drawLife(){
     stations.push({name:s.name,lat:s.lat,lon:s.lon,cumDist:cum});
   }
   totalDist=stations[stations.length-1].cumDist;
-  // birthYear/deathYearは西れき年（実数）
+  // birthYear/deathYearは西れき年（実数）。値↔わりあいは ntRatioToVal が線形／対数を吸収
   const lifeSpan=deathYear-birthYear; // 年単位
-  stations.forEach(s=>{s.year=birthYear+(s.cumDist/totalDist)*lifeSpan;});
+  stations.forEach(s=>{s.year=ntRatioToVal(s.cumDist/totalDist);});
 
   clearMap();
   const col=selectedRoute.color;
@@ -1629,6 +1701,7 @@ function drawLife(){
   redrawTopicMarkers();
   onSlider(0);
   setStatus(`${stations.length}駅 ／ ${Math.round(totalDist)}km ネ！`,false);
+  updateLogToggleUI();
 }
 
 function clearMap(){
@@ -1823,7 +1896,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.86',
+    version:'2.87',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -1837,6 +1910,7 @@ function buildShareData(){
     scaleMode,
     kind,
     dispUnit,
+    logScale,
     dateMode,
     bigYearJp,
     topics,
@@ -1941,6 +2015,8 @@ function applyData(data,doneMsg){
       setKind(k, kBtn);
       if(!isTime()){ dispUnit = data.dispUnit || QTY[k].def; buildUnitButtons(k); }
     }
+    // 対数スケール復元（古いデータ＝logScale無し → false＝線形）。setKindが一旦falseにするので必ず後で。重さ・長さ以外では絶対に対数にしない
+    logScale = (kind==='mass'||kind==='length') && !!data.logScale;
     if(isTime() && data.scaleMode){
       scaleMode=data.scaleMode;
       const scaleBtn=document.getElementById(data.scaleMode==='earth'?'scaleEarth':'scaleHuman');
