@@ -241,7 +241,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button class="edit-only" onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button class="edit-only" onclick="shareViewerURL()" title="見る人が編集できない・読むだけのURLを作るヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #3aa657;color:#3aa657;border-radius:4px;cursor:pointer;white-space:nowrap;">👁<span class="hide-sp"> 読取専用URLで共有</span></button>
   <button class="edit-only" onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.84</span>
+  <span class="ver">v2.86</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -355,10 +355,10 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
     <div id="warekiSection" style="display:none">
       <div class="sec-label">④ 種類・スケール・表記</div>
       <div class="wareki-row" id="kindBtns" style="margin-bottom:5px;flex-wrap:wrap">
-        <button class="wr-btn active" data-kind="time"   onclick="setKind('time',this)"   title="年・月・西暦（今までどおり）">⏳ じかん</button>
-        <button class="wr-btn"        data-kind="temp"   onclick="setKind('temp',this)"   title="温度（℃／K）">🌡 温度</button>
-        <button class="wr-btn"        data-kind="mass"   onclick="setKind('mass',this)"   title="重さ（g／kg／t）">⚖ 重さ</button>
-        <button class="wr-btn"        data-kind="length" onclick="setKind('length',this)" title="長さ（mm／cm／m／km）">📏 長さ</button>
+        <button class="wr-btn active" data-kind="time"   onclick="onKindBtn('time',this)"   title="年・月・西暦（今までどおり）">⏳ じかん</button>
+        <button class="wr-btn"        data-kind="temp"   onclick="onKindBtn('temp',this)"   title="温度（℃／K）">🌡 温度</button>
+        <button class="wr-btn"        data-kind="mass"   onclick="onKindBtn('mass',this)"   title="重さ（g／kg／t）">⚖ 重さ</button>
+        <button class="wr-btn"        data-kind="length" onclick="onKindBtn('length',this)" title="長さ（mm／cm／m／km）">📏 長さ</button>
       </div>
       <div id="timeScaleRows">
         <div class="wareki-row" style="margin-bottom:5px">
@@ -770,7 +770,8 @@ function parseJpNumber(raw){
   if(s==='') return NaN;
   // 全角→半角、記号の正規化
   s=s.replace(/[０-９]/g,d=>String.fromCharCode(d.charCodeAt(0)-0xFEE0))
-     .replace(/[．]/g,'.').replace(/[，、,\s]/g,'').replace(/[ー－―‐−]/g,'-');
+     .replace(/[．]/g,'.').replace(/[，、,\s]/g,'').replace(/[ー－―‐−]/g,'-')
+     .replace(/[×✕xX]10\^/g,'e');   // 「1.000×10^-13」→「1.000e-13」にして指数を読み戻す（自分が出した表記を自分で読む）
   // 「年前/前」→マイナス、「年後/後/年」は除去
   let sign=1;
   if(/(年前|前)$/.test(s)){ sign=-1; s=s.replace(/(年前|前)$/,''); }
@@ -870,6 +871,7 @@ let animTimer=null, isPlaying=false;
 let dateMode='seireki', topics=[], reversed=false, scaleMode='human';
 // ===== 種類（量）モード：'time'＝今までの時間。temp/mass/length＝新モード（線形・地球スケール相当） =====
 let kind='time';      // 'time' | 'temp' | 'mass' | 'length'
+const NT_STEPS=1000;  // 非時間モードのスライダ分割数（固定）。極小〜巨大どんなスケールでもなめらか再生
 let dispUnit='';      // 表示単位（温度=℃/K、重さ=g/kg/t、長さ=mm/cm/m/km）。timeでは未使用
 const QTY={
   temp:  {name:'温度', def:'℃', units:['℃','K']},
@@ -956,6 +958,36 @@ function setKind(k, btn){
     setQtyPlaceholders(ph);
   }
   const su=document.getElementById('ovAgeUnit'); if(su) su.textContent = isTime()?'歳':'';
+}
+// ④種類ボタンの「ユーザークリック」専用ラッパー。案1＝始まり/終わり/トピック/表示中の路線図をクリア（路線選択は残す）／案B＝消す前に確認
+// ※JSON・共有リンク・リセットは setKind を直接呼ぶのでクリアの巻き添えにしない
+function onKindBtn(k, btn){
+  if(k!==kind){
+    const hasData = topics.length>0
+      || document.getElementById('birthYear').value.trim()!==''
+      || document.getElementById('deathYear').value.trim()!=='';
+    if(hasData && !confirm('種類をかえると、始まり・終わり・トピック・表示中の路線図は消えるヨ。いい？')) return; // キャンセル：何もしない
+    clearQtyData();
+  }
+  setKind(k, btn);
+}
+// 量データだけ片づける（路線の選択＝②③は残す）
+function clearQtyData(){
+  stopAnim();
+  document.getElementById('birthYear').value='';
+  document.getElementById('deathYear').value='';
+  const ty=document.getElementById('topicYear'); if(ty) ty.value='';
+  const tt=document.getElementById('topicText'); if(tt) tt.value='';
+  topics=[]; renderTopicList();
+  topicTopZ=1000; for(const key in topicZOrder) delete topicZOrder[key];
+  expandedClusters={}; bubbleVisible=true;
+  clearMap();
+  ['stationListSection','saveSection','hr2','mapOverlay'].forEach(id=>{const el=document.getElementById(id); if(el)el.style.display='none';});
+  const stList=document.getElementById('stationList'); if(stList) stList.innerHTML='';
+  const sl=document.getElementById('ageSlider'); if(sl){ sl.value=0; sl.max=100; }
+  const setTxt=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
+  setTxt('ovAge','0'); setTxt('ovYear','──'); setTxt('ovStation','──'); setTxt('ovSub','');
+  const pb=document.getElementById('ovProgBar'); if(pb) pb.style.width='0%';
 }
 function setQtyPlaceholders(ph){
   const by=document.getElementById('birthYear'), dy=document.getElementById('deathYear'), ty=document.getElementById('topicYear');
@@ -1276,11 +1308,13 @@ function getEndVal(){
 }
 // 西れき年（実数）→スライダ値（人=月数整数、地球=年数整数）
 function yearToSteps(yearReal, birthYearReal){
+  if(!isTime()){ const span=getEndVal()-getStartVal(); return span? Math.round((yearReal-birthYearReal)/span*NT_STEPS) : 0; }
   const diff = yearReal - birthYearReal;
   return scaleMode==='human' ? Math.round(diff*12) : Math.round(diff);
 }
 // スライダ値→西れき年（実数）
 function stepsToYear(steps, birthYearReal){
+  if(!isTime()){ const span=getEndVal()-getStartVal(); return birthYearReal + (steps/NT_STEPS)*span; }
   return scaleMode==='human' ? birthYearReal + steps/12 : birthYearReal + steps;
 }
 // 総月数（人）or 総年数（地球）を年に換算
@@ -1302,8 +1336,8 @@ function valToLabel(yearReal){
 }
 // 値→年れいラベル（スライダ上の表示）
 function valToAgeLabel(steps){
-  // stepsは「スライダの値」= 経過月数（人）or 経過年数（地球）。非時間は経過＝値-始点
-  if(!isTime()) return qtyNum(getStartVal()+steps);
+  // stepsは「スライダの値」= 経過月数（人）or 経過年数（地球）。非時間は 0..NT_STEPS の割合
+  if(!isTime()){ const span=getEndVal()-getStartVal(); return qtyNum(getStartVal()+(steps/NT_STEPS)*span); }
   if(scaleMode==='earth') return fmtBigNum(steps);
   const y=Math.floor(steps/12);
   return `${y}`;
@@ -1517,7 +1551,7 @@ function drawLife(){
   const deathYear=getEndVal();
   let si=parseInt(document.getElementById('startSel').value);
   let ei=parseInt(document.getElementById('endSel').value);
-  if(birthYear>=deathYear){setStatus('生まれた年 < なくなた年 にしてネ！',true);return;}
+  if(birthYear>=deathYear){setStatus(isTime()?'生まれた年 < なくなた年 にしてネ！':'始まりの値 < 終わりの値 にしてネ！',true);return;}
   if(si===ei){setStatus('始発と終着は別の駅にしてネ！',true);return;}
   const dispSi=si,dispEi=ei;
   if(si>ei)[si,ei]=[ei,si];
@@ -1586,7 +1620,7 @@ function drawLife(){
 
   document.getElementById('ovProgBar').style.background=col;
   const sl=document.getElementById('ageSlider');
-  sl.min=0;sl.max=Math.round(scaleMode==='human'?lifeSpan*12:lifeSpan);sl.value=0;
+  sl.min=0;sl.max= isTime() ? Math.round(scaleMode==='human'?lifeSpan*12:lifeSpan) : NT_STEPS;sl.value=0;
   document.getElementById('mapOverlay').style.display='';
   document.getElementById('hr2').style.display='';
   document.getElementById('stationListSection').style.display='';
@@ -1621,8 +1655,8 @@ function onSlider(months){
   const birthYear=getStartVal();   // 西れき年（実数）
   const deathYear=getEndVal();
   const lifeSpan=deathYear-birthYear; // 年単位
-  const totalSteps=Math.round(scaleMode==='human'?lifeSpan*12:lifeSpan);
-  const ratio=months/totalSteps;
+  const totalSteps= isTime() ? Math.round(scaleMode==='human'?lifeSpan*12:lifeSpan) : NT_STEPS;
+  const ratio= totalSteps ? months/totalSteps : 0;
   const curYearReal=stepsToYear(months,birthYear); // 西れき年（実数）
 
   document.getElementById('ageSlider').value=months;
@@ -1660,7 +1694,7 @@ function onSlider(months){
     const snappedPos=getPosAtRatio(r);
     currentMarker.setLatLng([snappedPos.lat,snappedPos.lon]);
     const lifeSpan2=getEndVal()-getStartVal();
-    const totalSteps2=Math.round(scaleMode==='human'?lifeSpan2*12:lifeSpan2);
+    const totalSteps2= isTime() ? Math.round(scaleMode==='human'?lifeSpan2*12:lifeSpan2) : NT_STEPS;
     const newSteps=Math.round(r*totalSteps2);
     dragSteps=newSteps;
     document.getElementById('ageSlider').value=newSteps;
@@ -1789,7 +1823,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.84',
+    version:'2.86',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
