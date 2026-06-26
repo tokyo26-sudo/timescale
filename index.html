@@ -241,7 +241,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button class="edit-only" onclick="shareURL()" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #4a90d6;color:#4a90d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🔗<span class="hide-sp"> URLで共有</span></button>
   <button class="edit-only" onclick="shareViewerURL()" title="見る人が編集できない・読むだけのURLを作るヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #3aa657;color:#3aa657;border-radius:4px;cursor:pointer;white-space:nowrap;">👁<span class="hide-sp"> 読取専用URLで共有</span></button>
   <button class="edit-only" onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.82</span>
+  <span class="ver">v2.83</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -883,10 +883,10 @@ function parseQty(raw){
   let s=String(raw==null?'':raw).trim();
   if(s==='') return NaN;
   if(kind==='temp'){
-    let u='℃';
+    let u=dispUnit||'℃';   // A案：単位なし＝今の表示単位（℃/K）。℃・度・C／K は明示で上書き
     const km=s.match(/([kK])\s*$/);
     if(km && !/度/.test(s)){ u='K'; s=s.slice(0,km.index); }
-    else { s=s.replace(/(℃|°C|度|[cC])\s*$/,''); }
+    else if(/(℃|°C|度|[cC])\s*$/.test(s)){ u='℃'; s=s.replace(/(℃|°C|度|[cC])\s*$/,''); }
     const n=parseJpNumber(s);
     if(isNaN(n)) return NaN;
     return u==='K'? n-273.15 : n;   // 内部は摂氏
@@ -1390,7 +1390,7 @@ function renderTopicList(){
   topics.forEach((t,i)=>{
     const el=document.createElement('div');
     el.className='topic-item';
-    el.innerHTML=`<span class="topic-age">${t.year}年${t.month>0?t.month+'月':''}</span>
+    el.innerHTML=`<span class="topic-age">${fmtTopicLabel(t)}</span>
       <span class="topic-text">${t.text}</span>
       <button class="topic-del" onclick="deleteTopic(${i})">✕</button>`;
     list.appendChild(el);
@@ -1789,7 +1789,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.82',
+    version:'2.83',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
