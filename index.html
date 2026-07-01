@@ -261,7 +261,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button class="edit-only" onclick="shareViewerURL()" title="見る人が編集できない・読むだけのURLを作るヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #3aa657;color:#3aa657;border-radius:4px;cursor:pointer;white-space:nowrap;">👁<span class="hide-sp"> 読取専用URLで共有</span></button>
   <button class="edit-only" onclick="openEmbed()" title="ホームページに貼る埋め込みHTMLを作るヨ（読むだけ）" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #b072d6;color:#b072d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🧩<span class="hide-sp"> 埋め込みHTML</span></button>
   <button class="edit-only" onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.91</span>
+  <span class="ver">v2.92</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -1929,7 +1929,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.91',
+    version:'2.92',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -2063,7 +2063,7 @@ function applyData(data,doneMsg){
     setTerminalDots();
     // 読み込み時は必ず「常時表示ON」に戻す（前のOFF状態を引き継がない＝残りカス＆遠い未来イベント非表示を防ぐ）
     bubbleVisible = true;
-    {const _bt=document.getElementById('bubbleToggleBtn'); if(_bt){_bt.textContent='💬 常時表示ON'; _bt.style.opacity='1';}}
+    {const _bt=document.getElementById('bubbleToggleBtn'); if(_bt){_bt.innerHTML='<span class="mf-ico">💬</span><span class="mf-lbl">ON</span>'; _bt.style.opacity='1';}}
     topics=data.topics||[];
     // 元号ボタン（人スケール）復元：warekiBtns内だけを対象にする
     dateMode = (scaleMode==='earth') ? 'seireki' : (data.dateMode||'seireki');
