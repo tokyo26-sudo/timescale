@@ -22,8 +22,8 @@ body{background:var(--bg);color:var(--white);font-family:var(--font-body);height
 header{padding:9px 15px 7px;border-bottom:1px solid var(--rail);display:flex;align-items:center;gap:9px;flex-shrink:0;flex-wrap:wrap;}
 header h1{font-size:.88rem;font-weight:900;letter-spacing:.12em;color:var(--amber);font-family:var(--font-mono);white-space:nowrap;}
 .ver{margin-left:auto;font-size:.56rem;font-family:var(--font-mono);color:var(--muted);opacity:.9;}
-/* トースト（画面うえ真ん中・3秒で消える） */
-.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-14px);
+/* トースト（タイトルバーの下・3秒で消える） */
+.toast{position:fixed;top:58px;left:50%;transform:translateX(-50%) translateY(-14px);
   z-index:100001;background:#0D1E30F2;border:1px solid var(--amber);border-radius:8px;
   padding:9px 18px;font-size:.78rem;color:var(--white);font-family:var(--font-body);
   box-shadow:0 4px 18px rgba(0,0,0,.65);max-width:84vw;text-align:center;line-height:1.45;
@@ -224,6 +224,10 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
 .logscale-float button.active{background:#1E3A5F;color:#F5A623;}
 .logscale-float button:hover{color:#F5A623;}
 .logscale-float .sep{width:1px;background:#555;}
+/* 吹き出しの向き（上下↔右）トグル：地図の左上フローティング。路線図を出した後だけ表示 */
+.bubbleside-float{position:absolute;top:10px;left:10px;z-index:9999;display:none;}
+.bubbleside-float button{background:#0D1E30DD;border:1px solid var(--amber);color:var(--amber);font-size:.7rem;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.bubbleside-float button:hover{background:var(--amber);color:#07111F;}
 
 .leaflet-popup-content{font-family:'Share Tech Mono',monospace;font-size:.7rem;margin:7px 9px;}
 .leaflet-tile{} .tile-dark{filter:brightness(.62) saturate(.45) hue-rotate(200deg);}
@@ -255,7 +259,7 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
   <button class="edit-only" onclick="shareViewerURL()" title="見る人が編集できない・読むだけのURLを作るヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #3aa657;color:#3aa657;border-radius:4px;cursor:pointer;white-space:nowrap;">👁<span class="hide-sp"> 読取専用URLで共有</span></button>
   <button class="edit-only" onclick="openEmbed()" title="ホームページに貼る埋め込みHTMLを作るヨ（読むだけ）" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid #b072d6;color:#b072d6;border-radius:4px;cursor:pointer;white-space:nowrap;">🧩<span class="hide-sp"> 埋め込みHTML</span></button>
   <button class="edit-only" onclick="drawLife()" title="設定を変えたら押すと描き直すヨ" style="font-size:.65rem;padding:3px 8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;cursor:pointer;white-space:nowrap;">🔁<span class="hide-sp"> 再表示</span></button>
-  <span class="ver">v2.89</span>
+  <span class="ver">v2.90</span>
 </header>
 
 <!-- トースト（画面うえ真ん中・全メッセージ・3秒で消える） -->
@@ -417,9 +421,6 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
         <div class="sec-label">⑤ トピック</div>
         <div style="display:flex;gap:4px">
-          <button id="bubbleSideBtn" onclick="toggleBubbleSide()"
-            style="font-size:.6rem;padding:2px 7px;background:var(--rail);border:1px solid var(--amber);
-            color:var(--amber);border-radius:4px;cursor:pointer" title="吹き出しの向き（上下↔右）。縦長の路線は『右』がオススメ">↕ 上下</button>
           <button id="bubbleToggleBtn" onclick="toggleBubbles()"
             style="font-size:.6rem;padding:2px 7px;background:var(--rail);border:1px solid var(--amber);
             color:var(--amber);border-radius:4px;cursor:pointer">💬 常時表示ON</button>
@@ -483,6 +484,11 @@ hr.div{border:none;border-top:1px solid var(--rail);margin:0;}
       </div>
     </div>
     <div id="map"></div>
+
+    <!-- 吹き出しの向き（上下↔右）トグル：地図の左上。路線図を出した後だけ表示 -->
+    <div class="bubbleside-float" id="bubbleSideFloat">
+      <button id="bubbleSideBtn" onclick="toggleBubbleSide()" title="吹き出しの向き（上下↔右）。縦長の路線は『右』がオススメ">↕ 上下</button>
+    </div>
 
     <!-- 線形／対数 トグル（重さ・長さ＋路線図表示後だけ表示） -->
     <div class="logscale-float" id="logScaleFloat">
@@ -1380,6 +1386,9 @@ function updateLogToggleUI(){
   const bL=document.getElementById('logBtnLinear'), bG=document.getElementById('logBtnLog');
   if(bL) bL.classList.toggle('active', !logScale);
   if(bG) bG.classList.toggle('active', logScale);
+  // 吹き出しの向きトグルは種類に関係なく、路線図を出したら表示
+  const bsf=document.getElementById('bubbleSideFloat');
+  if(bsf) bsf.style.display = mapShown ? 'block' : 'none';
 }
 // 線形⇔対数の切替（地図の線は引きなおさない＝駅の値・一覧・吹き出し・丸だけ更新）
 function setLogScale(on){
@@ -1922,7 +1931,7 @@ function resetAnim(){stopAnim();onSlider(0);}
 // 共有データを組み立てる（JSON保存・URL共有で共通）
 function buildShareData(){
   return {
-    version:'2.89',
+    version:'2.90',
     routeId:selectedRoute?selectedRoute.id:null,
     startSel:document.getElementById('startSel').value,
     endSel:document.getElementById('endSel').value,
@@ -2015,6 +2024,7 @@ function resetAll(){
   const setTxt=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
   setTxt('ovAge','0'); setTxt('ovYear','──'); setTxt('ovStation','──'); setTxt('ovSub','');
   const pb=document.getElementById('ovProgBar'); if(pb) pb.style.width='0%';
+  updateLogToggleUI();
   setStatus('リセットしたヨ！',false);
 }
 
